@@ -4,15 +4,51 @@ import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import axios from 'axios';
 
-// Публичные Invidious инстансы
+const RECCOBEATS_API = 'https://api.reccobeats.com/v1';
+
+// Рабочие Invidious инстансы
 const INVIDIOUS_INSTANCES = [
-    'https://invidious.io',
-    'https://invidious.private.coffee',
+    'https://inv.odyssey346.dev',
+    'https://inv.bp.kiwi',
+    'https://inv.nadeko.net',
+    'https://inv.in.projectsegfau.lt',
+    'https://inv.nerdvpn.de',
+    'https://invidious.nerdvpn.de',
+    'https://invidious.sethforprivacy.com',
+    'https://y.com.sb',
     'https://invidious.fdn.fr',
-    'https://invidious.projectsegfau.lt',
-    'https://yewtu.be',
     'https://inv.riverside.rocks',
 ];
+
+async function searchReccoBeats(query) {
+    try {
+        const response = await axios.get(`${RECCOBEATS_API}/track/search`, {
+            params: {
+                searchText: query,
+                size: 40,
+                page: 0
+            },
+            timeout: 10000
+        });
+
+        if (response.data && response.data.content && response.data.content.length > 0) {
+            return response.data.content.map(item => ({
+                id: item.id,
+                title: item.trackTitle || item.name || 'Unknown',
+                artist: item.artists && item.artists.length > 0 ? item.artists[0].name : 'Unknown Artist',
+                time: formatDuration(item.durationMs ? Math.floor(item.durationMs / 1000) : 0),
+                cover: item.album?.cover || `https://picsum.photos/seed/${item.id}/100/100`,
+                audioUrl: null,
+                duration: item.durationMs ? Math.floor(item.durationMs / 1000) : 0,
+                isrc: item.isrc || null
+            }));
+        }
+        return [];
+    } catch (err) {
+        console.error('ReccoBeats search error:', err);
+        return [];
+    }
+}
 
 async function searchYouTubeInvidious(query) {
     for (const instance of INVIDIOUS_INSTANCES) {
@@ -24,24 +60,23 @@ async function searchYouTubeInvidious(query) {
                     sort: 'relevance',
                     limit: 30
                 },
-                timeout: 10000
+                timeout: 8000
             });
 
             if (response.data && response.data.length > 0) {
-                const tracks = response.data.map(item => ({
+                return response.data.map(item => ({
                     id: item.videoId,
                     title: item.title || 'Unknown',
                     artist: item.author || 'Unknown Artist',
                     time: formatDuration(item.lengthSeconds || 0),
                     cover: `https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg`,
-                    audioUrl: `https://www.youtube.com/watch?v=${item.videoId}`,
+                    audioUrl: null,
                     duration: item.lengthSeconds || 0,
-                    videoId: item.videoId
+                    videoId: item.videoId,
+                    youtubeUrl: `https://www.youtube.com/watch?v=${item.videoId}`
                 }));
-                return tracks;
             }
         } catch (err) {
-            console.warn(`Invidious instance ${instance} failed:`, err.message);
             continue;
         }
     }
@@ -80,13 +115,21 @@ export default function Search() {
             setError(null);
 
             try {
-                const tracks = await searchYouTubeInvidious(searchQuery);
+                let tracks = [];
+
+                // Сначала пробуем ReccoBeats
+                tracks = await searchReccoBeats(searchQuery);
+
+                // Если ничего не найдено, пробуем YouTube
+                if (!tracks || tracks.length === 0) {
+                    tracks = await searchYouTubeInvidious(searchQuery);
+                }
 
                 if (tracks && tracks.length > 0) {
                     setResults(tracks);
                 } else {
                     setResults([]);
-                    setError(`По запросу "${searchQuery}" ничего не найдено на YouTube`);
+                    setError(`По запросу "${searchQuery}" ничего не найдено`);
                 }
             } catch (err) {
                 console.error("Ошибка поиска:", err);
@@ -118,7 +161,7 @@ export default function Search() {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', height: '100%', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, display: isMobile ? 'none' : 'block' }}>
-                Результаты поиска на YouTube
+                Результаты поиска
             </h2>
 
             {error && (
@@ -144,7 +187,7 @@ export default function Search() {
                         <div style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
                             <Music size={32} color="#9B51E0" />
                         </div>
-                        <div style={{ marginTop: '12px' }}>Ищем на YouTube...</div>
+                        <div style={{ marginTop: '12px' }}>Поиск музыки...</div>
                         <style>{`
                             @keyframes spin {
                                 0% { transform: rotate(0deg); }

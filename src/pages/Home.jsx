@@ -4,25 +4,61 @@ import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import axios from 'axios';
 
-// Демо-треки на случай полного отказа
+const RECCOBEATS_API = 'https://api.reccobeats.com/v1';
+
+// Рабочие Invidious инстансы (обновленные)
+const INVIDIOUS_INSTANCES = [
+    'https://inv.odyssey346.dev',
+    'https://inv.bp.kiwi',
+    'https://inv.nadeko.net',
+    'https://inv.in.projectsegfau.lt',
+    'https://inv.nerdvpn.de',
+    'https://invidious.nerdvpn.de',
+    'https://invidious.sethforprivacy.com',
+    'https://y.com.sb',
+    'https://invidious.fdn.fr',
+    'https://inv.riverside.rocks',
+];
+
+// Демо треки
 const DEMO_TRACKS = [
     { id: 'demo1', title: 'Sample Track 1', artist: 'Demo Artist', time: '3:00', cover: 'https://picsum.photos/seed/1/100/100', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
     { id: 'demo2', title: 'Sample Track 2', artist: 'Demo Artist', time: '3:30', cover: 'https://picsum.photos/seed/2/100/100', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
 ];
 
-// Публичные Invidious инстансы
-const INVIDIOUS_INSTANCES = [
-    'https://invidious.io',
-    'https://invidious.private.coffee',
-    'https://invidious.fdn.fr',
-    'https://invidious.projectsegfau.lt',
-    'https://yewtu.be',
-    'https://inv.riverside.rocks',
-];
+// Поиск через ReccoBeats API
+async function searchReccoBeats(query) {
+    try {
+        const response = await axios.get(`${RECCOBEATS_API}/track/search`, {
+            params: {
+                searchText: query,
+                size: 30,
+                page: 0
+            },
+            timeout: 10000
+        });
 
-// Функция для поиска через Invidious API
+        if (response.data && response.data.content && response.data.content.length > 0) {
+            return response.data.content.map(item => ({
+                id: item.id,
+                title: item.trackTitle || item.name || 'Unknown',
+                artist: item.artists && item.artists.length > 0 ? item.artists[0].name : 'Unknown Artist',
+                time: formatDuration(item.durationMs ? Math.floor(item.durationMs / 1000) : 0),
+                cover: item.album?.cover || `https://picsum.photos/seed/${item.id}/100/100`,
+                audioUrl: null, // Будет получено через YouTube
+                duration: item.durationMs ? Math.floor(item.durationMs / 1000) : 0,
+                isrc: item.isrc || null
+            }));
+        }
+        return [];
+    } catch (err) {
+        console.error('ReccoBeats search error:', err);
+        return [];
+    }
+}
+
+// Поиск на YouTube через Invidious
 async function searchYouTubeInvidious(query) {
-    // Пробуем разные инстансы
     for (const instance of INVIDIOUS_INSTANCES) {
         try {
             const response = await axios.get(`${instance}/api/v1/search`, {
@@ -32,49 +68,27 @@ async function searchYouTubeInvidious(query) {
                     sort: 'relevance',
                     limit: 20
                 },
-                timeout: 10000
+                timeout: 8000
             });
 
             if (response.data && response.data.length > 0) {
-                const tracks = response.data.map(item => ({
+                return response.data.map(item => ({
                     id: item.videoId,
                     title: item.title || 'Unknown',
                     artist: item.author || 'Unknown Artist',
                     time: formatDuration(item.lengthSeconds || 0),
                     cover: `https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg`,
-                    audioUrl: `https://www.youtube.com/watch?v=${item.videoId}`,
+                    audioUrl: null,
                     duration: item.lengthSeconds || 0,
-                    videoId: item.videoId
+                    videoId: item.videoId,
+                    youtubeUrl: `https://www.youtube.com/watch?v=${item.videoId}`
                 }));
-                return tracks;
             }
         } catch (err) {
-            console.warn(`Invidious instance ${instance} failed:`, err.message);
             continue;
         }
     }
     return [];
-}
-
-// Функция для получения аудио через yt-dlp proxy (альтернативный метод)
-async function getAudioWithProxy(videoId) {
-    // Используем публичный API для конвертации
-    const proxies = [
-        `https://api.vevioz.com/api/button/mp3/${videoId}`,
-        `https://yt-api.com/api/stream/${videoId}`,
-    ];
-
-    for (const proxy of proxies) {
-        try {
-            const response = await axios.get(proxy, { timeout: 8000 });
-            if (response.data && response.data.url) {
-                return response.data.url;
-            }
-        } catch (err) {
-            continue;
-        }
-    }
-    return null;
 }
 
 const formatDuration = (seconds) => {
@@ -104,16 +118,25 @@ export default function Home() {
 
             try {
                 const query = searchQuery.trim() || 'popular music';
-                const tracks = await searchYouTubeInvidious(query);
+                let tracks = [];
 
-                if (tracks && tracks.length > 0) {
-                    setRecommendedTracks(tracks);
-                } else {
-                    setRecommendedTracks(DEMO_TRACKS);
+                // Сначала пробуем ReccoBeats
+                tracks = await searchReccoBeats(query);
+
+                // Если ничего не найдено, пробуем YouTube
+                if (!tracks || tracks.length === 0) {
+                    tracks = await searchYouTubeInvidious(query);
+                }
+
+                // Если все еще ничего нет - демо треки
+                if (!tracks || tracks.length === 0) {
+                    tracks = DEMO_TRACKS;
                     if (searchQuery.trim()) {
                         setError(`По запросу "${searchQuery}" ничего не найдено. Показываем демо-треки.`);
                     }
                 }
+
+                setRecommendedTracks(tracks);
             } catch (err) {
                 console.error("Ошибка загрузки треков:", err);
                 setRecommendedTracks(DEMO_TRACKS);
@@ -246,14 +269,14 @@ export default function Home() {
                     color: 'rgba(255,255,255,0.4)',
                     zIndex: 1
                 }}>
-                    🎵 YouTube Music
+                    🎵 Музыка
                 </div>
             </motion.div>
 
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <div style={{ fontSize: '22px', fontWeight: 'bold' }}>
-                        {searchQuery.trim() ? `Результаты "${searchQuery}"` : 'Популярные треки с YouTube'}
+                        {searchQuery.trim() ? `Результаты "${searchQuery}"` : 'Популярные треки'}
                     </div>
                     {searchQuery.trim() && (
                         <span style={{ fontSize: '13px', color: '#888' }}>

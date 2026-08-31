@@ -1,28 +1,29 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Play, Pause, SkipForward, Heart, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, SkipForward, Heart, Volume2, VolumeX, AlertCircle } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
-// Функция для извлечения аудио из YouTube видео
-async function getYouTubeAudio(videoId) {
-    // Используем yt-dlp proxy сервисы
-    const services = [
-        `https://api.vevioz.com/api/button/mp3/${videoId}`,
-        `https://yt-api.com/api/stream/${videoId}`,
-        `https://api.audio-download.com/api/youtube/${videoId}`,
-    ];
+// Прямые ссылки на аудио для демо треков
+const DEMO_AUDIO = {
+    'demo1': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    'demo2': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+};
 
-    for (const service of services) {
-        try {
-            const response = await fetch(service);
-            if (response.ok) {
-                const data = await response.json();
-                if (data && data.url) {
-                    return data.url;
-                }
+// Получение аудио через Piped API (работает лучше чем Invidious)
+async function getAudioFromPiped(videoId) {
+    try {
+        const response = await fetch(`https://pipedapi.kavin.rocks/streams/${videoId}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.audioStreams && data.audioStreams.length > 0) {
+                // Выбираем лучший аудио поток
+                const bestAudio = data.audioStreams.reduce((best, current) => {
+                    return (current.bitrate || 0) > (best.bitrate || 0) ? current : best;
+                });
+                return bestAudio.url;
             }
-        } catch (err) {
-            console.warn('Service failed:', service);
         }
+    } catch (err) {
+        console.warn('Piped API error:', err);
     }
     return null;
 }
@@ -34,33 +35,72 @@ export default function Player({ isMobile }) {
     const [duration, setDuration] = useState(0);
     const [audioUrl, setAudioUrl] = useState(null);
     const [loadingAudio, setLoadingAudio] = useState(false);
+    const [audioError, setAudioError] = useState(false);
 
-    // Получаем аудио URL для YouTube видео
+    // Получаем аудио URL
     useEffect(() => {
         const fetchAudio = async () => {
             if (!currentTrack) return;
 
-            // Если это не YouTube ссылка (демо треки), используем прямой URL
-            if (!currentTrack.audioUrl?.includes('youtube.com/watch')) {
+            setAudioError(false);
+
+            // Демо треки
+            if (currentTrack.id && currentTrack.id.startsWith('demo')) {
+                setAudioUrl(DEMO_AUDIO[currentTrack.id] || null);
+                return;
+            }
+
+            // Если есть прямой audioUrl
+            if (currentTrack.audioUrl) {
                 setAudioUrl(currentTrack.audioUrl);
                 return;
             }
 
-            setLoadingAudio(true);
-            try {
-                const videoId = currentTrack.id;
-                const url = await getYouTubeAudio(videoId);
-                if (url) {
-                    setAudioUrl(url);
-                } else {
-                    console.error('Не удалось получить аудио для:', currentTrack.title);
-                    setAudioUrl(null);
+            // Если есть videoId (YouTube)
+            if (currentTrack.videoId) {
+                setLoadingAudio(true);
+                try {
+                    const url = await getAudioFromPiped(currentTrack.videoId);
+                    if (url) {
+                        setAudioUrl(url);
+                    } else {
+                        setAudioError(true);
+                    }
+                } catch (err) {
+                    console.error('Ошибка получения аудио:', err);
+                    setAudioError(true);
+                } finally {
+                    setLoadingAudio(false);
                 }
-            } catch (err) {
-                console.error('Ошибка получения аудио:', err);
-                setAudioUrl(null);
-            } finally {
+                return;
+            }
+
+            // Если это трек из ReccoBeats без videoId, пробуем поискать по названию
+            if (currentTrack.title && currentTrack.artist) {
+                setLoadingAudio(true);
+                try {
+                    // Пробуем через Piped поиск
+                    const searchQuery = `${currentTrack.title} ${currentTrack.artist}`;
+                    const searchResponse = await fetch(`https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(searchQuery)}&filter=music`);
+                    if (searchResponse.ok) {
+                        const searchData = await searchResponse.json();
+                        if (searchData.items && searchData.items.length > 0) {
+                            const videoId = searchData.items[0].url.split('watch?v=')[1]?.split('&')[0];
+                            if (videoId) {
+                                const url = await getAudioFromPiped(videoId);
+                                if (url) {
+                                    setAudioUrl(url);
+                                    setLoadingAudio(false);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Search for audio failed:', err);
+                }
                 setLoadingAudio(false);
+                setAudioError(true);
             }
         };
 
@@ -96,6 +136,7 @@ export default function Player({ isMobile }) {
             };
             const handleError = (e) => {
                 console.error("Ошибка аудио:", e);
+                setAudioError(true);
                 setIsPlaying(false);
             };
 
@@ -188,11 +229,12 @@ export default function Player({ isMobile }) {
                 <span style={{ fontWeight: 'bold', fontSize: isMobile ? '14px' : '15px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                     {currentTrack.title}
                     {loadingAudio && <span style={{ fontSize: '11px', color: '#888', marginLeft: '8px' }}>⏳ загрузка...</span>}
+                    {audioError && <span style={{ fontSize: '11px', color: '#FF2A54', marginLeft: '8px' }}>⚠️</span>}
                 </span>
                 <span style={{ fontSize: isMobile ? '12px' : '13px', color: '#888', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                     {currentTrack.artist}
                 </span>
-                {!isMobile && (
+                {!isMobile && !audioError && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                         <span style={{ fontSize: '11px', color: '#666' }}>{formatTime(currentTime)}</span>
                         <div style={{ flex: 1, height: '3px', backgroundColor: '#2a2a35', borderRadius: '2px', overflow: 'hidden' }}>
@@ -213,7 +255,7 @@ export default function Player({ isMobile }) {
                 <button
                     onClick={() => setIsPlaying(!isPlaying)}
                     style={{ background: 'none', border: 'none', padding: '5px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-                    disabled={loadingAudio || !audioUrl}
+                    disabled={loadingAudio || audioError || !audioUrl}
                 >
                     {isPlaying ? <Pause size={isMobile ? 24 : 28} fill="#fff" color="#fff" /> : <Play size={isMobile ? 24 : 28} fill="#fff" color="#fff" />}
                 </button>
