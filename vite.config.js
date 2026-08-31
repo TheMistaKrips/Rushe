@@ -1,7 +1,21 @@
-import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Выносим ядро React в отдельный файл
+          vendor: ['react', 'react-dom', 'react-router-dom', 'zustand'],
+          // Выносим тяжелые анимации и иконки
+          ui: ['framer-motion', 'lucide-react'],
+          // Выносим плеер
+          player: ['react-player']
+        }
+      }
+    }
+  }
 })
