@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Heart, Music, Trash2 } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export default function Liked() {

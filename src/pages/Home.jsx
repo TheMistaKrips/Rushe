@@ -18,6 +18,13 @@ export default function Home() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const formatTime = (seconds) => {
+        if (!seconds) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${String(secs).padStart(2, '0')}`;
+    };
+
     useEffect(() => {
         const fetchTracks = async () => {
             setIsLoading(true);
@@ -68,13 +75,6 @@ export default function Home() {
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
 
-    const formatTime = (seconds) => {
-        if (!seconds) return '0:00';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${String(secs).padStart(2, '0')}`;
-    };
-
     const handleMyWavePlay = () => {
         if (currentTrack && isPlaying) {
             setIsPlaying(false);
@@ -117,7 +117,6 @@ export default function Home() {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', height: '100%', width: '100%' }}>
-            {/* МОЯ ВОЛНА */}
             <motion.div
                 onClick={handleMyWavePlay}
                 animate={{
@@ -199,7 +198,6 @@ export default function Home() {
                 </div>
             </motion.div>
 
-            {/* РЕКОМЕНДАЦИИ */}
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <div style={{ fontSize: '22px', fontWeight: 'bold' }}>

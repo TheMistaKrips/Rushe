@@ -5,12 +5,12 @@ import { useStore } from './store/useStore';
 import Home from './pages/Home';
 import Search from './pages/Search';
 import Library from './pages/Library';
+import Liked from './pages/Liked';
 import Onboarding from './pages/Onboarding';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import Player from './components/Player';
 
-// Компонент-обертка для доступа к useLocation
 function AppContent() {
   const { hasCompletedOnboarding, currentTrack } = useStore();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -81,7 +81,6 @@ function AppContent() {
   );
 }
 
-// Главный компонент App с BrowserRouter
 export default function App() {
   return (
     <BrowserRouter>
@@ -89,6 +88,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
-// Импорт Liked компонента
-import Liked from './pages/Liked';

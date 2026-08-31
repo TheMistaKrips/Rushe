@@ -60,11 +60,6 @@ export default function Sidebar({ isMobile }) {
                     <img src="/rushe_logo_colored.png" alt="RushE" style={{ width: '32px', height: '32px' }}
                         onError={(e) => {
                             e.target.style.display = 'none';
-                            const parent = e.target.parentElement;
-                            const span = document.createElement('span');
-                            span.style.cssText = 'font-size: 28px; font-weight: bold; color: #9B51E0;';
-                            span.textContent = 'R';
-                            parent.appendChild(span);
                         }}
                     />
                     <span style={{ fontSize: '22px', fontWeight: 'bold' }}>RushE</span>

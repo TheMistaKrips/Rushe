@@ -7,7 +7,6 @@ export default function Player({ isMobile }) {
     const audioRef = useRef(null);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
-    const [isVisible, setIsVisible] = useState(true);
 
     useEffect(() => {
         if (audioRef.current) {
@@ -112,7 +111,7 @@ export default function Player({ isMobile }) {
             />
 
             <img
-                src={currentTrack.cover || 'https://picsum.photos/seed/' + currentTrack.id + '/100/100'}
+                src={currentTrack.cover || `https://picsum.photos/seed/${currentTrack.id}/100/100`}
                 alt="Cover"
                 style={{
                     width: isMobile ? '40px' : '56px',
@@ -122,7 +121,7 @@ export default function Player({ isMobile }) {
                     flexShrink: 0
                 }}
                 onError={(e) => {
-                    e.target.src = 'https://picsum.photos/seed/' + currentTrack.id + '/100/100';
+                    e.target.src = `https://picsum.photos/seed/${currentTrack.id}/100/100`;
                 }}
             />
 
@@ -194,8 +193,8 @@ export default function Player({ isMobile }) {
                             -webkit-appearance: none;
                             width: 12px;
                             height: 12px;
-                            borderRadius: '50%';
-                            backgroundColor: '#9B51E0';
+                            border-radius: 50%;
+                            background: #9B51E0;
                             cursor: pointer;
                         }
                     `}</style>
