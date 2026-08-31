@@ -1,26 +1,56 @@
 import React from 'react';
-import { Bell, ChevronDown, User } from 'lucide-react';
+import { Bell, Search as SearchIcon, User } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useStore } from '../store/useStore';
 
 export default function Topbar({ isMobile }) {
-    // --- INLINE СТИЛИ ---
+    const { userProfile, searchQuery, setSearchQuery } = useStore();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+        if (location.pathname !== '/search' && e.target.value.trim() !== '') {
+            navigate('/search');
+        }
+    };
+
     const topbarStyle = {
         height: '80px',
         display: 'flex',
-        justifyContent: 'flex-end', // Сдвигаем профиль вправо
+        justifyContent: 'space-between',
         alignItems: 'center',
         padding: isMobile ? '0 15px' : '0 30px',
         backgroundColor: 'transparent',
-        flexShrink: 0
+        flexShrink: 0,
+        gap: '15px'
     };
 
-    const profileContainerStyle = {
+    const searchContainerStyle = {
         display: 'flex',
         alignItems: 'center',
-        gap: '15px',
-        cursor: 'pointer',
-        padding: '8px 12px',
-        borderRadius: '30px',
-        transition: 'background-color 0.2s',
+        backgroundColor: '#1a1a24',
+        borderRadius: '25px',
+        padding: '0 15px',
+        height: '46px',
+        flex: isMobile ? '1' : '0 1 400px',
+        border: '1px solid #2a2a35'
+    };
+
+    const inputStyle = {
+        backgroundColor: 'transparent',
+        border: 'none',
+        color: '#fff',
+        width: '100%',
+        marginLeft: '10px',
+        outline: 'none',
+        fontSize: '15px'
+    };
+
+    const rightSectionStyle = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: isMobile ? '10px' : '20px'
     };
 
     const avatarStyle = {
@@ -31,13 +61,8 @@ export default function Topbar({ isMobile }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden'
-    };
-
-    const infoStyle = {
-        display: isMobile ? 'none' : 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center'
+        overflow: 'hidden',
+        border: '2px solid #2a2a35'
     };
 
     const bellStyle = {
@@ -48,34 +73,44 @@ export default function Topbar({ isMobile }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: '15px',
         cursor: 'pointer',
-        border: '1px solid #2a2a35'
+        border: '1px solid #2a2a35',
+        flexShrink: 0
     };
 
     return (
         <header style={topbarStyle}>
-            <div
-                style={profileContainerStyle}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1a1a24'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-                <div style={avatarStyle}>
-                    <User size={24} color="#888" />
-                </div>
-                <div style={infoStyle}>
-                    <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>
-                        Герман Фетисов
-                    </span>
-                    <span style={{ fontSize: '12px', color: '#9B51E0' }}>
-                        Pro Member
-                    </span>
-                </div>
-                {!isMobile && <ChevronDown size={16} color="#888" style={{ marginLeft: '5px' }} />}
+            <div style={searchContainerStyle}>
+                <SearchIcon size={18} color="#888" />
+                <input
+                    type="text"
+                    placeholder="Поиск музыки..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    style={inputStyle}
+                />
             </div>
 
-            <div style={bellStyle}>
-                <Bell size={20} color="#fff" />
+            <div style={rightSectionStyle}>
+                {!isMobile && (
+                    <div style={bellStyle}>
+                        <Bell size={20} color="#fff" />
+                    </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {!isMobile && (
+                        <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>
+                            {userProfile?.name || 'Пользователь'}
+                        </span>
+                    )}
+                    <div style={avatarStyle}>
+                        {userProfile?.avatar ? (
+                            <img src={userProfile.avatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <User size={24} color="#888" />
+                        )}
+                    </div>
+                </div>
             </div>
         </header>
     );

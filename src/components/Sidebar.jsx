@@ -3,110 +3,89 @@ import { NavLink } from 'react-router-dom';
 import { Home, Search, Library } from 'lucide-react';
 
 export default function Sidebar({ isMobile }) {
-    // --- INLINE СТИЛИ ---
     const sidebarStyle = isMobile ? {
-        // Мобильный стиль (нижняя панель)
         position: 'fixed',
         bottom: 0,
         left: 0,
-        right: 0,
-        height: '65px',
-        backgroundColor: '#12121a',
-        borderTop: '1px solid #2a2a35',
+        width: '100vw',
+        height: '70px',
+        backgroundColor: 'rgba(10, 10, 15, 0.95)',
+        backdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255,255,255,0.05)',
         display: 'flex',
         justifyContent: 'space-around',
         alignItems: 'center',
-        zIndex: 50,
+        zIndex: 1000,
         paddingBottom: 'env(safe-area-inset-bottom)'
     } : {
-        // Десктопный стиль (боковое меню)
         width: '240px',
         height: '100vh',
-        backgroundColor: '#12121a',
-        borderRight: '1px solid #2a2a35',
+        backgroundColor: '#0a0a0f',
+        borderRight: '1px solid #1f1f2e',
         display: 'flex',
         flexDirection: 'column',
         padding: '30px 20px',
         flexShrink: 0
     };
 
-    const logoContainerStyle = {
+    const getLinkStyle = ({ isActive }) => ({
         display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         alignItems: 'center',
-        gap: '12px',
-        marginBottom: '40px',
-        paddingLeft: '10px'
-    };
-
-    const navContainerStyle = {
-        display: 'flex',
-        flexDirection: isMobile ? 'row' : 'column',
-        gap: isMobile ? '0' : '10px',
-        width: '100%'
-    };
-
-    // Функция для динамических стилей активной/неактивной ссылки
-    const getLinkStyle = ({ isActive }) => {
-        const baseStyle = {
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            alignItems: 'center',
-            gap: isMobile ? '4px' : '15px',
-            padding: isMobile ? '10px' : '12px 15px',
-            borderRadius: '12px',
-            textDecoration: 'none',
-            color: isActive ? '#fff' : '#888',
-            backgroundColor: isActive && !isMobile ? '#2a2a35' : 'transparent',
-            fontWeight: isActive ? 'bold' : 'normal',
-            fontSize: isMobile ? '10px' : '16px',
-            transition: 'all 0.2s ease',
-        };
-        return baseStyle;
-    };
+        justifyContent: 'center',
+        gap: isMobile ? '6px' : '15px',
+        padding: isMobile ? '8px' : '12px 15px',
+        borderRadius: '12px',
+        textDecoration: 'none',
+        color: isActive ? '#fff' : '#666',
+        backgroundColor: isActive && !isMobile ? '#1f1f2e' : 'transparent',
+        fontWeight: isActive ? 'bold' : 'normal',
+        fontSize: isMobile ? '10px' : '16px',
+        transition: 'all 0.2s ease',
+        flex: isMobile ? '1' : 'none'
+    });
 
     return (
         <nav style={sidebarStyle}>
             {!isMobile && (
-                <div style={logoContainerStyle}>
-                    <img
-                        src="/rushe_logo.png"
-                        alt="RushE"
-                        style={{ width: '28px', filter: 'invert(1)' }}
-                    />
-                    <span style={{ fontSize: '22px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
-                        RushE
-                    </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px', paddingLeft: '10px' }}>
+                    <img src="/rushe_logo.png" alt="RushE" style={{ width: '28px', filter: 'invert(1)' }} />
+                    <span style={{ fontSize: '22px', fontWeight: 'bold' }}>RushE</span>
                 </div>
             )}
 
-            <div style={navContainerStyle}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: isMobile ? '0' : '10px', width: '100%' }}>
                 <NavLink to="/" style={getLinkStyle}>
                     {({ isActive }) => (
                         <>
-                            <Home size={isMobile ? 24 : 22} color={isActive ? '#9B51E0' : '#888'} />
+                            <Home size={isMobile ? 26 : 22} color={isActive ? '#fff' : '#666'} />
                             <span>Главная</span>
                         </>
                     )}
                 </NavLink>
-
                 <NavLink to="/search" style={getLinkStyle}>
                     {({ isActive }) => (
                         <>
-                            <Search size={isMobile ? 24 : 22} color={isActive ? '#9B51E0' : '#888'} />
+                            <Search size={isMobile ? 26 : 22} color={isActive ? '#fff' : '#666'} />
                             <span>Поиск</span>
                         </>
                     )}
                 </NavLink>
-
                 <NavLink to="/library" style={getLinkStyle}>
                     {({ isActive }) => (
                         <>
-                            <Library size={isMobile ? 24 : 22} color={isActive ? '#9B51E0' : '#888'} />
+                            <Library size={isMobile ? 26 : 22} color={isActive ? '#fff' : '#666'} />
                             <span>Медиатека</span>
                         </>
                     )}
                 </NavLink>
             </div>
+
+            {!isMobile && (
+                <div style={{ marginTop: 'auto', padding: '20px 10px', color: '#666', fontSize: '12px', lineHeight: '1.5' }}>
+                    RushE - музыка без ограничений
+                </div>
+            )}
         </nav>
     );
 }

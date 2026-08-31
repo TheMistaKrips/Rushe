@@ -4,19 +4,25 @@ import { persist } from 'zustand/middleware';
 export const useStore = create(
     persist(
         (set, get) => ({
-            // --- ОНБОРДИНГ И ПРОФИЛЬ ---
+            // --- ПРОФИЛЬ И ОНБОРДИНГ ---
+            userProfile: { name: '', avatar: '' },
             hasCompletedOnboarding: false,
             favoriteGenres: [],
-            completeOnboarding: (genres) => set({
+            searchQuery: '', // Глобальный поиск
+
+            setSearchQuery: (query) => set({ searchQuery: query }),
+
+            completeOnboarding: (name, avatar, genres) => set({
+                userProfile: { name, avatar },
                 hasCompletedOnboarding: true,
                 favoriteGenres: genres
             }),
 
             // --- ПЛЕЕР ---
-            currentTrack: null,     // Текущий играющий трек { id, title, artist, cover, videoId }
-            queue: [],              // Очередь воспроизведения
-            isPlaying: false,       // Состояние пауза/плей
-            volume: 0.8,            // Громкость (от 0 до 1)
+            currentTrack: null,
+            queue: [],
+            isPlaying: false,
+            volume: 0.8,
 
             playTrack: (track, queue = []) => set({
                 currentTrack: track,
@@ -25,47 +31,36 @@ export const useStore = create(
             }),
 
             setIsPlaying: (isPlaying) => set({ isPlaying }),
-
             setVolume: (volume) => set({ volume }),
 
             playNext: () => {
                 const { currentTrack, queue } = get();
                 if (!currentTrack || queue.length <= 1) return;
-
                 const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
-                const nextIndex = currentIndex + 1;
-
-                if (nextIndex < queue.length) {
-                    set({ currentTrack: queue[nextIndex], isPlaying: true });
+                if (currentIndex + 1 < queue.length) {
+                    set({ currentTrack: queue[currentIndex + 1], isPlaying: true });
                 }
             },
 
             playPrevious: () => {
                 const { currentTrack, queue } = get();
                 if (!currentTrack || queue.length <= 1) return;
-
                 const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
-                const prevIndex = currentIndex - 1;
-
-                if (prevIndex >= 0) {
-                    set({ currentTrack: queue[prevIndex], isPlaying: true });
+                if (currentIndex - 1 >= 0) {
+                    set({ currentTrack: queue[currentIndex - 1], isPlaying: true });
                 }
             },
 
-            // --- БИБЛИОТЕКА (ЛАЙКИ И ПЛЕЙЛИСТЫ) ---
+            // --- БИБЛИОТЕКА ---
             likedTracks: [],
-            myPlaylists: [
-                { id: '1', name: 'Мой первый плейлист', tracks: [] } // Дефолтный плейлист
-            ],
+            myPlaylists: [],
 
             toggleLike: (track) => {
                 const { likedTracks } = get();
                 const exists = likedTracks.find(t => t.id === track.id);
                 if (exists) {
-                    // Если трек уже лайкнут — удаляем
                     set({ likedTracks: likedTracks.filter(t => t.id !== track.id) });
                 } else {
-                    // Иначе добавляем
                     set({ likedTracks: [...likedTracks, track] });
                 }
             },
@@ -80,18 +75,13 @@ export const useStore = create(
 
             addTrackToPlaylist: (playlistId, track) => set((state) => ({
                 myPlaylists: state.myPlaylists.map(pl => {
-                    if (pl.id === playlistId) {
-                        // Проверка, чтобы не добавлять дубликаты
-                        const trackExists = pl.tracks.find(t => t.id === track.id);
-                        if (trackExists) return pl;
+                    if (pl.id === playlistId && !pl.tracks.find(t => t.id === track.id)) {
                         return { ...pl, tracks: [...pl.tracks, track] };
                     }
                     return pl;
                 })
             }))
         }),
-        {
-            name: 'rushe-storage', // Ключ, по которому данные сохраняются в localStorage браузера
-        }
+        { name: 'rushe-storage' }
     )
 );
