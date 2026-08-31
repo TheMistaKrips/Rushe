@@ -14,7 +14,6 @@ export default function Topbar({ isMobile }) {
     const [suggestions, setSuggestions] = useState([]);
 
     useEffect(() => {
-        // Подсказки из истории поиска
         if (searchQuery.trim().length > 0) {
             const filtered = searchHistory.filter(item =>
                 item.toLowerCase().includes(searchQuery.toLowerCase())
@@ -63,14 +62,16 @@ export default function Topbar({ isMobile }) {
     };
 
     const topbarStyle = {
-        height: '72px',
+        height: isMobile ? '64px' : '72px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: isMobile ? '0 16px' : '0 30px',
+        padding: isMobile ? '0 12px' : '0 30px',
         backgroundColor: 'transparent',
         flexShrink: 0,
-        gap: '15px'
+        gap: '12px',
+        position: 'relative',
+        zIndex: 50
     };
 
     const searchContainerStyle = {
@@ -78,34 +79,47 @@ export default function Topbar({ isMobile }) {
         alignItems: 'center',
         backgroundColor: isFocused ? '#1a1a24' : '#14141e',
         borderRadius: '16px',
-        padding: '0 16px',
-        height: '48px',
+        padding: '0 14px',
+        height: isMobile ? '44px' : '48px',
         flex: isMobile ? '1' : '0 1 450px',
         border: `1px solid ${isFocused ? '#9B51E0' : '#2a2a35'}`,
         transition: 'all 0.3s ease',
-        position: 'relative'
+        position: 'relative',
+        minWidth: isMobile ? '0' : '200px'
+    };
+
+    const inputStyle = {
+        flex: 1,
+        backgroundColor: 'transparent',
+        border: 'none',
+        color: '#fff',
+        padding: '0 10px',
+        outline: 'none',
+        fontSize: isMobile ? '14px' : '15px',
+        height: '100%',
+        minWidth: '30px'
     };
 
     return (
         <header style={topbarStyle}>
             {isMobile && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                    <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #9B51E0, #4A00E0)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '16px'
-                    }}>
-                        🎵
-                    </div>
+                    <img
+                        src="/rushe_logo_colored.png"
+                        alt="RushE"
+                        style={{
+                            width: '32px',
+                            height: '32px',
+                            objectFit: 'contain'
+                        }}
+                        onError={(e) => {
+                            e.target.style.display = 'none';
+                        }}
+                    />
                 </div>
             )}
 
-            <form onSubmit={handleSearchSubmit} style={{ flex: 1, position: 'relative' }}>
+            <form onSubmit={handleSearchSubmit} style={{ flex: 1, position: 'relative', minWidth: 0 }}>
                 <div style={searchContainerStyle}>
                     <SearchIcon size={18} color={isFocused ? '#9B51E0' : '#666'} />
                     <input
@@ -116,16 +130,7 @@ export default function Topbar({ isMobile }) {
                         onChange={handleSearchChange}
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-                        style={{
-                            flex: 1,
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            color: '#fff',
-                            padding: '0 10px',
-                            outline: 'none',
-                            fontSize: '15px',
-                            height: '100%'
-                        }}
+                        style={inputStyle}
                     />
                     {searchQuery && (
                         <button
@@ -140,7 +145,8 @@ export default function Topbar({ isMobile }) {
                                 display: 'flex',
                                 alignItems: 'center',
                                 borderRadius: '50%',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                flexShrink: 0
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.background = '#2a2a35'}
                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -158,7 +164,7 @@ export default function Topbar({ isMobile }) {
                             exit={{ opacity: 0, y: -10 }}
                             style={{
                                 position: 'absolute',
-                                top: 'calc(100% + 8px)',
+                                top: isMobile ? 'calc(100% + 6px)' : 'calc(100% + 8px)',
                                 left: 0,
                                 right: 0,
                                 backgroundColor: '#1c1c1e',
@@ -166,11 +172,15 @@ export default function Topbar({ isMobile }) {
                                 border: '1px solid #2a2a35',
                                 padding: '8px',
                                 zIndex: 100,
-                                boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+                                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                                maxHeight: isMobile ? '200px' : '300px',
+                                overflowY: 'auto'
                             }}
                         >
-                            {searchQuery.trim() && suggestions.length > 0 && (
-                                <div style={{ fontSize: '11px', color: '#666', padding: '4px 12px', marginBottom: '4px' }}>Подсказки</div>
+                            {suggestions.length > 0 && (
+                                <div style={{ fontSize: '11px', color: '#666', padding: '4px 12px', marginBottom: '4px' }}>
+                                    {searchQuery.trim() ? 'Подсказки' : 'История поиска'}
+                                </div>
                             )}
                             {suggestions.map((suggestion, index) => (
                                 <div
@@ -189,11 +199,11 @@ export default function Topbar({ isMobile }) {
                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                 >
                                     <SearchIcon size={16} color="#666" />
-                                    <span style={{ fontSize: '14px' }}>{suggestion}</span>
+                                    <span style={{ fontSize: isMobile ? '13px' : '14px' }}>{suggestion}</span>
                                 </div>
                             ))}
                             {searchQuery.trim() && suggestions.length === 0 && (
-                                <div style={{ padding: '10px 12px', color: '#666', fontSize: '14px' }}>
+                                <div style={{ padding: '10px 12px', color: '#666', fontSize: isMobile ? '13px' : '14px' }}>
                                     Нет подсказок. Нажмите Enter для поиска.
                                 </div>
                             )}
@@ -202,7 +212,7 @@ export default function Topbar({ isMobile }) {
                 </AnimatePresence>
             </form>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '16px', flexShrink: 0 }}>
                 {!isMobile && (
                     <div style={{
                         width: '40px',
@@ -222,7 +232,7 @@ export default function Topbar({ isMobile }) {
                         <Bell size={18} color="#888" />
                     </div>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '10px' }}>
                     {!isMobile && (
                         <span style={{ fontSize: '14px', color: '#888' }}>
                             {userProfile?.name || 'Пользователь'}
@@ -230,8 +240,8 @@ export default function Topbar({ isMobile }) {
                     )}
                     <div
                         style={{
-                            width: '40px',
-                            height: '40px',
+                            width: isMobile ? '34px' : '40px',
+                            height: isMobile ? '34px' : '40px',
                             borderRadius: '50%',
                             background: 'linear-gradient(135deg, #9B51E0, #4A00E0)',
                             display: 'flex',
@@ -240,7 +250,8 @@ export default function Topbar({ isMobile }) {
                             overflow: 'hidden',
                             cursor: 'pointer',
                             border: '2px solid #2a2a35',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            flexShrink: 0
                         }}
                         onClick={() => setShowDropdown(!showDropdown)}
                         onMouseEnter={(e) => e.currentTarget.style.borderColor = '#9B51E0'}
@@ -249,7 +260,7 @@ export default function Topbar({ isMobile }) {
                         {userProfile?.avatar ? (
                             <img src={userProfile.avatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
-                            <User size={20} color="#fff" />
+                            <User size={isMobile ? 16 : 20} color="#fff" />
                         )}
                     </div>
                 </div>
@@ -262,13 +273,13 @@ export default function Topbar({ isMobile }) {
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                             style={{
                                 position: 'absolute',
-                                top: '70px',
-                                right: isMobile ? '16px' : '30px',
+                                top: isMobile ? '58px' : '70px',
+                                right: isMobile ? '12px' : '30px',
                                 backgroundColor: '#1c1c1e',
                                 borderRadius: '16px',
                                 border: '1px solid #2a2a35',
                                 padding: '8px',
-                                minWidth: '220px',
+                                minWidth: '200px',
                                 zIndex: 1000,
                                 boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
                             }}

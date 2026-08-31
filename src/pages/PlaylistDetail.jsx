@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Heart, Play, ArrowLeft, Trash2, Plus, Search, X } from 'lucide-react';
+import { Heart, ArrowLeft, Trash2, Plus, Search, X, Music } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { searchYouTubeTracks } from '../config/youtube';
 
 export default function PlaylistDetail() {
@@ -117,113 +117,115 @@ export default function PlaylistDetail() {
                 {playlist.tracks?.length || 0} треков
             </div>
 
-            {showAddTracks && (
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    style={{
-                        backgroundColor: '#1a1a24',
-                        borderRadius: '16px',
-                        padding: '16px',
-                        border: '1px solid #2a2a35'
-                    }}
-                >
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '12px' }}>
-                        <Search size={18} color="#666" />
-                        <input
-                            type="text"
-                            placeholder="Поиск треков для добавления..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            style={{
-                                flex: 1,
-                                backgroundColor: 'transparent',
-                                border: 'none',
-                                color: '#fff',
-                                outline: 'none',
-                                fontSize: '14px'
-                            }}
-                        />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery('')}
+            <AnimatePresence>
+                {showAddTracks && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        style={{
+                            backgroundColor: '#1a1a24',
+                            borderRadius: '16px',
+                            padding: '16px',
+                            border: '1px solid #2a2a35'
+                        }}
+                    >
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '12px' }}>
+                            <Search size={18} color="#666" />
+                            <input
+                                type="text"
+                                placeholder="Поиск треков для добавления..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 style={{
-                                    background: 'none',
+                                    flex: 1,
+                                    backgroundColor: 'transparent',
                                     border: 'none',
-                                    color: '#666',
-                                    cursor: 'pointer'
+                                    color: '#fff',
+                                    outline: 'none',
+                                    fontSize: '14px'
                                 }}
-                            >
-                                <X size={16} />
-                            </button>
-                        )}
-                    </div>
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#666',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
+                        </div>
 
-                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                        {isSearching ? (
-                            <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>Поиск...</div>
-                        ) : searchResults.length > 0 ? (
-                            searchResults.map((track) => {
-                                const isAdded = isTrackInPlaylist(track.id);
-                                return (
-                                    <div
-                                        key={track.id}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            padding: '8px 12px',
-                                            borderRadius: '10px',
-                                            cursor: 'pointer',
-                                            transition: 'background 0.2s',
-                                            gap: '12px',
-                                            opacity: isAdded ? 0.5 : 1
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                    >
-                                        <img
-                                            src={track.cover}
-                                            alt={track.title}
-                                            style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }}
-                                        />
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: '13px' }}>{track.title}</div>
-                                            <div style={{ fontSize: '11px', color: '#888' }}>{track.artist}</div>
+                        <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                            {isSearching ? (
+                                <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>Поиск...</div>
+                            ) : searchResults.length > 0 ? (
+                                searchResults.map((track) => {
+                                    const isAdded = isTrackInPlaylist(track.id);
+                                    return (
+                                        <div
+                                            key={track.id}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                padding: '8px 12px',
+                                                borderRadius: '10px',
+                                                cursor: 'pointer',
+                                                transition: 'background 0.2s',
+                                                gap: '12px',
+                                                opacity: isAdded ? 0.5 : 1
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <img
+                                                src={track.cover}
+                                                alt={track.title}
+                                                style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }}
+                                            />
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: '13px' }}>{track.title}</div>
+                                                <div style={{ fontSize: '11px', color: '#888' }}>{track.artist}</div>
+                                            </div>
+                                            {!isAdded && (
+                                                <button
+                                                    onClick={() => handleAddTrack(track)}
+                                                    style={{
+                                                        padding: '6px 14px',
+                                                        backgroundColor: '#9B51E0',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        color: '#fff',
+                                                        fontSize: '12px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                >
+                                                    Добавить
+                                                </button>
+                                            )}
+                                            {isAdded && (
+                                                <span style={{ fontSize: '11px', color: '#888' }}>✅ Добавлен</span>
+                                            )}
                                         </div>
-                                        {!isAdded && (
-                                            <button
-                                                onClick={() => handleAddTrack(track)}
-                                                style={{
-                                                    padding: '6px 14px',
-                                                    backgroundColor: '#9B51E0',
-                                                    border: 'none',
-                                                    borderRadius: '8px',
-                                                    color: '#fff',
-                                                    fontSize: '12px',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.3s'
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                            >
-                                                Добавить
-                                            </button>
-                                        )}
-                                        {isAdded && (
-                                            <span style={{ fontSize: '11px', color: '#888' }}>✅ Добавлен</span>
-                                        )}
-                                    </div>
-                                );
-                            })
-                        ) : searchQuery && (
-                            <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>
-                                Ничего не найдено
-                            </div>
-                        )}
-                    </div>
-                </motion.div>
-            )}
+                                    );
+                                })
+                            ) : searchQuery && (
+                                <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>
+                                    Ничего не найдено
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', flex: 1, paddingBottom: '20px' }}>
                 {playlist.tracks?.length === 0 ? (

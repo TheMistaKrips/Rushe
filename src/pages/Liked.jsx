@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Play, Plus, Music } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion } from 'framer-motion';
 

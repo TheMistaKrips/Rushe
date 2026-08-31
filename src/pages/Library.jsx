@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Music, Plus, Trash2, ChevronRight, Play } from 'lucide-react';
+import { Heart, Music, Plus, Trash2, ChevronRight } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Library() {
     const { likedTracks, myPlaylists, createPlaylist, deletePlaylist } = useStore();
@@ -56,73 +57,75 @@ export default function Library() {
                 </button>
             </div>
 
-            {showCreate && (
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    style={{
-                        display: 'flex',
-                        gap: '10px',
-                        backgroundColor: '#1a1a24',
-                        padding: '16px',
-                        borderRadius: '16px',
-                        alignItems: 'center',
-                        flexWrap: 'wrap'
-                    }}
-                >
-                    <input
-                        type="text"
-                        placeholder="Название плейлиста"
-                        value={newPlaylistName}
-                        onChange={(e) => setNewPlaylistName(e.target.value)}
+            <AnimatePresence>
+                {showCreate && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
                         style={{
-                            flex: 1,
-                            padding: '12px 16px',
-                            backgroundColor: '#0d0d12',
-                            border: '1px solid #2a2a35',
-                            borderRadius: '10px',
-                            color: '#fff',
-                            fontSize: '14px',
-                            outline: 'none',
-                            minWidth: '150px'
-                        }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleCreatePlaylist();
-                        }}
-                    />
-                    <button
-                        onClick={handleCreatePlaylist}
-                        style={{
-                            padding: '12px 24px',
-                            backgroundColor: '#9B51E0',
-                            border: 'none',
-                            borderRadius: '10px',
-                            color: '#fff',
-                            cursor: 'pointer',
-                            fontWeight: 'bold',
-                            transition: 'all 0.3s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    >
-                        Создать
-                    </button>
-                    <button
-                        onClick={() => setShowCreate(false)}
-                        style={{
-                            padding: '12px 20px',
-                            backgroundColor: 'transparent',
-                            border: '1px solid #2a2a35',
-                            borderRadius: '10px',
-                            color: '#888',
-                            cursor: 'pointer'
+                            display: 'flex',
+                            gap: '10px',
+                            backgroundColor: '#1a1a24',
+                            padding: '16px',
+                            borderRadius: '16px',
+                            alignItems: 'center',
+                            flexWrap: 'wrap'
                         }}
                     >
-                        Отмена
-                    </button>
-                </motion.div>
-            )}
+                        <input
+                            type="text"
+                            placeholder="Название плейлиста"
+                            value={newPlaylistName}
+                            onChange={(e) => setNewPlaylistName(e.target.value)}
+                            style={{
+                                flex: 1,
+                                padding: '12px 16px',
+                                backgroundColor: '#0d0d12',
+                                border: '1px solid #2a2a35',
+                                borderRadius: '10px',
+                                color: '#fff',
+                                fontSize: '14px',
+                                outline: 'none',
+                                minWidth: '150px'
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleCreatePlaylist();
+                            }}
+                        />
+                        <button
+                            onClick={handleCreatePlaylist}
+                            style={{
+                                padding: '12px 24px',
+                                backgroundColor: '#9B51E0',
+                                border: 'none',
+                                borderRadius: '10px',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                transition: 'all 0.3s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                            Создать
+                        </button>
+                        <button
+                            onClick={() => setShowCreate(false)}
+                            style={{
+                                padding: '12px 20px',
+                                backgroundColor: 'transparent',
+                                border: '1px solid #2a2a35',
+                                borderRadius: '10px',
+                                color: '#888',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Отмена
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
                 <motion.div

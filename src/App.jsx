@@ -15,7 +15,7 @@ import YouTubePlayer from './components/YouTubePlayer';
 import FullscreenPlayer from './components/FullscreenPlayer';
 
 function AppContent() {
-  const { hasCompletedOnboarding, currentTrack, isFullscreenPlayerOpen } = useStore();
+  const { hasCompletedOnboarding, currentTrack } = useStore();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const location = useLocation();
 
@@ -66,7 +66,7 @@ function AppContent() {
       {!isMobile && <Sidebar isMobile={false} />}
 
       <div style={contentContainerStyle}>
-        {!(isMobile && location.pathname === '/search') && <Topbar isMobile={isMobile} />}
+        <Topbar isMobile={isMobile} />
 
         <div style={mainAreaStyle}>
           <AnimatePresence mode="wait">

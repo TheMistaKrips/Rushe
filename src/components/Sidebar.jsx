@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Search, Library, Heart, LogOut, Settings, User, Music, Disc } from 'lucide-react';
+import { Home, Search, Library, Heart, LogOut, User, Settings } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export default function Sidebar({ isMobile }) {
     const { userProfile } = useStore();
@@ -69,29 +69,70 @@ export default function Sidebar({ isMobile }) {
                     animate={{ opacity: 1, y: 0 }}
                     style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px', paddingLeft: '6px' }}
                 >
-                    <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '12px',
+                    <img
+                        src="/rushe_logo_colored.png"
+                        alt="RushE"
+                        style={{
+                            width: '40px',
+                            height: '40px',
+                            objectFit: 'contain'
+                        }}
+                        onError={(e) => {
+                            e.target.style.display = 'none';
+                        }}
+                    />
+                    <span style={{
+                        fontSize: '24px',
+                        fontWeight: 'bold',
                         background: 'linear-gradient(135deg, #9B51E0, #4A00E0)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '20px'
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent'
                     }}>
-                        🎵
-                    </div>
-                    <span style={{ fontSize: '24px', fontWeight: 'bold', background: 'linear-gradient(135deg, #9B51E0, #4A00E0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                         RushE
                     </span>
                 </motion.div>
+            )}
+
+            {isMobile && (
+                <div style={{
+                    position: 'absolute',
+                    top: '-40px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(20,20,30,0.95)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+                }}>
+                    <img
+                        src="/rushe_logo_colored.png"
+                        alt="RushE"
+                        style={{
+                            width: '28px',
+                            height: '28px',
+                            objectFit: 'contain'
+                        }}
+                        onError={(e) => {
+                            e.target.style.display = 'none';
+                        }}
+                    />
+                </div>
             )}
 
             <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: isMobile ? '0' : '6px', width: '100%' }}>
                 <NavLink to="/" style={getLinkStyle}>
                     {({ isActive }) => (
                         <>
-                            <Home size={isMobile ? 24 : 20} color={isActive ? '#9B51E0' : '#666'} />
+                            <Home
+                                size={isMobile ? 24 : 20}
+                                color={isActive ? '#9B51E0' : '#666'}
+                                style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(155,81,224,0.4))' } : {}}
+                            />
                             <span style={{ color: isActive ? '#9B51E0' : '#666' }}>Главная</span>
                             {isActive && !isMobile && (
                                 <motion.div layoutId="activeIndicator" style={{ position: 'absolute', left: 0, width: '3px', height: '28px', background: '#9B51E0', borderRadius: '0 4px 4px 0' }} />
@@ -102,7 +143,11 @@ export default function Sidebar({ isMobile }) {
                 <NavLink to="/search" style={getLinkStyle}>
                     {({ isActive }) => (
                         <>
-                            <Search size={isMobile ? 24 : 20} color={isActive ? '#9B51E0' : '#666'} />
+                            <Search
+                                size={isMobile ? 24 : 20}
+                                color={isActive ? '#9B51E0' : '#666'}
+                                style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(155,81,224,0.4))' } : {}}
+                            />
                             <span style={{ color: isActive ? '#9B51E0' : '#666' }}>Поиск</span>
                             {isActive && !isMobile && (
                                 <motion.div layoutId="activeIndicator" style={{ position: 'absolute', left: 0, width: '3px', height: '28px', background: '#9B51E0', borderRadius: '0 4px 4px 0' }} />
@@ -113,7 +158,11 @@ export default function Sidebar({ isMobile }) {
                 <NavLink to="/library" style={getLinkStyle}>
                     {({ isActive }) => (
                         <>
-                            <Library size={isMobile ? 24 : 20} color={isActive ? '#9B51E0' : '#666'} />
+                            <Library
+                                size={isMobile ? 24 : 20}
+                                color={isActive ? '#9B51E0' : '#666'}
+                                style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(155,81,224,0.4))' } : {}}
+                            />
                             <span style={{ color: isActive ? '#9B51E0' : '#666' }}>Медиатека</span>
                             {isActive && !isMobile && (
                                 <motion.div layoutId="activeIndicator" style={{ position: 'absolute', left: 0, width: '3px', height: '28px', background: '#9B51E0', borderRadius: '0 4px 4px 0' }} />
@@ -124,7 +173,11 @@ export default function Sidebar({ isMobile }) {
                 <NavLink to="/liked" style={getLinkStyle}>
                     {({ isActive }) => (
                         <>
-                            <Heart size={isMobile ? 24 : 20} color={isActive ? '#FF2A54' : '#666'} />
+                            <Heart
+                                size={isMobile ? 24 : 20}
+                                color={isActive ? '#FF2A54' : '#666'}
+                                style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(255,42,84,0.4))' } : {}}
+                            />
                             <span style={{ color: isActive ? '#FF2A54' : '#666' }}>Лайки</span>
                             {isActive && !isMobile && (
                                 <motion.div layoutId="activeIndicator" style={{ position: 'absolute', left: 0, width: '3px', height: '28px', background: '#FF2A54', borderRadius: '0 4px 4px 0' }} />

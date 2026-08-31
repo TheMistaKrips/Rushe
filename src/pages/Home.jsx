@@ -42,16 +42,13 @@ export default function Home() {
             setError(null);
 
             try {
-                // Загружаем популярные треки
                 const popular = await searchYouTubeTracks('popular music 2024 top hits', 20);
                 setPopularTracks(popular.length > 0 ? popular : DEMO_TRACKS);
 
-                // Если есть поисковый запрос, показываем результаты
                 if (searchQuery.trim()) {
                     const results = await searchYouTubeTracks(searchQuery, 20);
                     setRecommendedTracks(results.length > 0 ? results : DEMO_TRACKS);
                 } else {
-                    // Иначе показываем что-то по умолчанию
                     const defaultTracks = await searchYouTubeTracks('best songs 2024', 10);
                     setRecommendedTracks(defaultTracks.length > 0 ? defaultTracks : DEMO_TRACKS);
                 }
@@ -125,7 +122,6 @@ export default function Home() {
             animate="visible"
             style={{ display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '20px' }}
         >
-            {/* МОЯ ВОЛНА */}
             <motion.div
                 variants={itemVariants}
                 onClick={handleMyWavePlay}
@@ -160,7 +156,6 @@ export default function Home() {
                     pointerEvents: 'none'
                 }} />
 
-                {/* Анимированные круги */}
                 {isPlaying && (
                     <>
                         <motion.div
@@ -239,7 +234,6 @@ export default function Home() {
                 </div>
             </motion.div>
 
-            {/* ЧАРТЫ */}
             <motion.div variants={itemVariants}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                     <TrendingUp size={22} color="#9B51E0" />
@@ -277,7 +271,6 @@ export default function Home() {
                 </div>
             </motion.div>
 
-            {/* ПОПУЛЯРНЫЕ ПЛЕЙЛИСТЫ */}
             <motion.div variants={itemVariants}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                     <ListMusic size={22} color="#9B51E0" />
@@ -334,7 +327,6 @@ export default function Home() {
                 </div>
             </motion.div>
 
-            {/* РЕКОМЕНДУЕМЫЕ ТРЕКИ */}
             <motion.div variants={itemVariants}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>
