@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play, Heart, Pause, RefreshCw, TrendingUp, ListMusic, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { searchYouTubeTracks, DEMO_TRACKS, PLAYLISTS } from '../config/youtube';
-import { Lottie } from 'lottie-react';
+import { Lottie } from "lottie-react";
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -38,8 +38,13 @@ export default function Home() {
                 if (!res.ok) throw new Error('Not found');
                 return res.json();
             })
-            .then(data => setLottieData(data))
-            .catch(() => console.log('Lottie animation not found, using fallback'));
+            .then(data => {
+                console.log('Lottie animation loaded!');
+                setLottieData(data);
+            })
+            .catch((err) => {
+                console.log('Lottie animation not found:', err.message);
+            });
     }, []);
 
     useEffect(() => {
@@ -136,13 +141,13 @@ export default function Home() {
                 width: '100%'
             }}
         >
-            {/* МОЯ ВОЛНА - с Lottie анимацией */}
+            {/* МОЯ ВОЛНА - с Lottie анимацией в правом углу */}
             <motion.div
                 variants={itemVariants}
                 onClick={handleMyWavePlay}
                 style={{
                     width: '100%',
-                    height: isMobile ? '200px' : '280px',
+                    height: isMobile ? '180px' : '240px',
                     borderRadius: '28px',
                     position: 'relative',
                     overflow: 'hidden',
@@ -190,28 +195,31 @@ export default function Home() {
                     pointerEvents: 'none'
                 }} />
 
-                {/* Lottie анимация */}
-                {lottieData && (
+                {/* Lottie анимация - ТОЛЬКО НА ДЕСКТОПЕ, В ПРАВОМ УГЛУ */}
+                {!isMobile && lottieData && (
                     <div style={{
                         position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: isMobile ? '180px' : '280px',
-                        height: isMobile ? '180px' : '280px',
-                        opacity: 0.35,
-                        pointerEvents: 'none'
+                        bottom: '-10px',
+                        right: '-10px',
+                        width: '180px',
+                        height: '180px',
+                        pointerEvents: 'none',
+                        zIndex: 1,
+                        opacity: 0.9
                     }}>
                         <Lottie
                             animationData={lottieData}
                             loop={true}
                             autoplay={true}
-                            style={{ width: '10%', height: '10%' }}
+                            style={{
+                                width: '100%',
+                                height: '100%'
+                            }}
                         />
                     </div>
                 )}
 
-                {/* Контент */}
+                {/* Контент - поверх анимации */}
                 <div style={{
                     position: 'relative',
                     zIndex: 2,
@@ -228,29 +236,30 @@ export default function Home() {
                                 animate={{ scale: [1, 1.1, 1] }}
                                 transition={{ duration: 1, repeat: Infinity }}
                             >
-                                <Pause size={isMobile ? 32 : 44} fill="#fff" color="#fff" />
+                                <Pause size={isMobile ? 28 : 40} fill="#fff" color="#fff" />
                             </motion.div>
                         ) : (
                             <div style={{
-                                width: isMobile ? 48 : 60,
-                                height: isMobile ? 48 : 60,
+                                width: isMobile ? 44 : 56,
+                                height: isMobile ? 44 : 56,
                                 borderRadius: '50%',
                                 backgroundColor: 'rgba(255,255,255,0.2)',
                                 backdropFilter: 'blur(10px)',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center'
+                                justifyContent: 'center',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
                             }}>
-                                <Play size={isMobile ? 24 : 32} fill="#fff" color="#fff" />
+                                <Play size={isMobile ? 22 : 28} fill="#fff" color="#fff" />
                             </div>
                         )}
                         <h1 style={{
-                            fontSize: isMobile ? '28px' : '44px',
+                            fontSize: isMobile ? '24px' : '36px',
                             margin: 0,
                             fontWeight: '900',
                             letterSpacing: '-1px',
                             color: '#fff',
-                            textShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                            textShadow: '0 4px 30px rgba(0,0,0,0.3)'
                         }}>
                             Моя волна
                         </h1>
@@ -261,18 +270,19 @@ export default function Home() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             style={{
-                                marginTop: '12px',
-                                padding: '8px 20px',
+                                marginTop: '10px',
+                                padding: '6px 18px',
                                 backgroundColor: 'rgba(255,255,255,0.15)',
                                 backdropFilter: 'blur(20px)',
                                 borderRadius: '30px',
-                                fontSize: isMobile ? '13px' : '15px',
-                                maxWidth: '80%',
+                                fontSize: isMobile ? '12px' : '14px',
+                                maxWidth: '70%',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
                                 color: '#fff',
-                                border: '1px solid rgba(255,255,255,0.1)'
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
                             }}
                         >
                             ▶ {currentTrack.title} — {currentTrack.artist}
@@ -284,12 +294,12 @@ export default function Home() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             style={{
-                                marginTop: '12px',
+                                marginTop: '10px',
                                 padding: '6px 16px',
                                 backgroundColor: 'rgba(255,255,255,0.1)',
                                 backdropFilter: 'blur(20px)',
                                 borderRadius: '20px',
-                                fontSize: isMobile ? '12px' : '14px',
+                                fontSize: isMobile ? '11px' : '13px',
                                 color: 'rgba(255,255,255,0.8)',
                                 border: '1px solid rgba(255,255,255,0.05)'
                             }}
@@ -300,12 +310,16 @@ export default function Home() {
 
                     <div style={{
                         position: 'absolute',
-                        bottom: '16px',
+                        bottom: '12px',
                         right: '20px',
-                        fontSize: '11px',
-                        color: 'rgba(255,255,255,0.5)',
+                        fontSize: '10px',
+                        color: 'rgba(255,255,255,0.4)',
                         zIndex: 2,
-                        letterSpacing: '0.5px'
+                        letterSpacing: '0.5px',
+                        backgroundColor: 'rgba(0,0,0,0.15)',
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        backdropFilter: 'blur(10px)'
                     }}>
                         {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Рекомендуемые треки'}
                     </div>
