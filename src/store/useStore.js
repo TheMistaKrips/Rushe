@@ -4,7 +4,6 @@ import { persist } from 'zustand/middleware';
 export const useStore = create(
     persist(
         (set, get) => ({
-            // --- ПРОФИЛЬ И ОНБОРДИНГ ---
             userProfile: { name: '', avatar: '', email: '' },
             hasCompletedOnboarding: false,
             favoriteGenres: [],
@@ -18,7 +17,6 @@ export const useStore = create(
                 favoriteGenres: genres
             }),
 
-            // --- ПЛЕЕР ---
             currentTrack: null,
             queue: [],
             isPlaying: false,
@@ -54,7 +52,6 @@ export const useStore = create(
                 }
             },
 
-            // --- БИБЛИОТЕКА ---
             likedTracks: [],
             myPlaylists: [],
 

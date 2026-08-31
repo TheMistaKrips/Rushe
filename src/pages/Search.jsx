@@ -2,18 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, Heart, Music, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
-
-const JAMENDO_CLIENT_ID = '9970bd20';
-
-// Запасные треки для поиска
-const FALLBACK_SEARCH_RESULTS = [
-    { id: 'fb1', title: 'Midnight City', artist: 'M83', time: '4:03', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
-    { id: 'fb2', title: 'Starboy', artist: 'The Weeknd', time: '3:50', cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
-    { id: 'fb3', title: 'Blinding Lights', artist: 'The Weeknd', time: '3:20', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
-    { id: 'fb4', title: 'Believer', artist: 'Imagine Dragons', time: '3:24', cover: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
-    { id: 'fb5', title: 'Radioactive', artist: 'Imagine Dragons', time: '3:06', cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
-    { id: 'fb6', title: 'Demons', artist: 'Imagine Dragons', time: '2:57', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' },
-];
+import { searchYoutube, initializeNewPipe, extractStreamInfo, getBestAudioStream } from 'newpipe-extractor-js';
 
 export default function Search() {
     const { searchQuery, playTrack, currentTrack, likedTracks, toggleLike } = useStore();
@@ -21,7 +10,6 @@ export default function Search() {
     const [isLoading, setIsLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [error, setError] = useState(null);
-    const [usingFallback, setUsingFallback] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -36,52 +24,89 @@ export default function Search() {
         return `${mins}:${String(secs).padStart(2, '0')}`;
     };
 
+    // Инициализация NewPipe
+    useEffect(() => {
+        try {
+            initializeNewPipe();
+            console.log('NewPipe initialized for search');
+        } catch (err) {
+            console.error('NewPipe init error:', err);
+        }
+    }, []);
+
+    const searchYouTube = async (query) => {
+        try {
+            const searchResults = await searchYoutube(query, ['videos']);
+
+            if (searchResults && searchResults.items && searchResults.items.length > 0) {
+                const tracks = [];
+
+                for (const item of searchResults.items) {
+                    try {
+                        const videoId = item.url.split('v=')[1] || item.id;
+                        if (!videoId) continue;
+
+                        let audioUrl = null;
+                        try {
+                            const streamInfo = await extractStreamInfo(item.url);
+                            const bestAudio = getBestAudioStream(streamInfo);
+                            if (bestAudio && bestAudio.url) {
+                                audioUrl = bestAudio.url;
+                            }
+                        } catch (streamErr) {
+                            console.warn('Не удалось извлечь аудио для:', item.name);
+                        }
+
+                        if (!audioUrl) continue;
+
+                        tracks.push({
+                            id: videoId,
+                            title: item.name || 'Unknown',
+                            artist: item.uploaderName || 'Unknown Artist',
+                            time: formatTime(item.duration || 0),
+                            cover: item.thumbnail || `https://picsum.photos/seed/${videoId}/100/100`,
+                            audioUrl: audioUrl,
+                            duration: item.duration || 0,
+                            videoId: videoId
+                        });
+                    } catch (itemErr) {
+                        console.warn('Ошибка обработки трека:', itemErr);
+                    }
+                }
+
+                return tracks;
+            }
+            return [];
+        } catch (err) {
+            console.error('YouTube search error:', err);
+            return [];
+        }
+    };
+
     useEffect(() => {
         const fetchMusic = async () => {
             if (!searchQuery.trim()) {
                 setResults([]);
                 setError(null);
-                setUsingFallback(false);
                 return;
             }
 
             setIsLoading(true);
             setError(null);
-            setUsingFallback(false);
 
             try {
-                const response = await fetch(
-                    `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=30&search=${encodeURIComponent(searchQuery)}&include=musicinfo`
-                );
+                const tracks = await searchYouTube(searchQuery);
 
-                if (!response.ok) {
-                    throw new Error(`Ошибка API: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                if (data && data.results && data.results.length > 0) {
-                    const formattedResults = data.results.map(item => ({
-                        id: item.id.toString(),
-                        title: item.name,
-                        artist: item.artist_name,
-                        time: formatTime(item.duration),
-                        cover: item.image || item.album_image || `https://picsum.photos/seed/${item.id}/100/100`,
-                        audioUrl: item.audio || `https://api.jamendo.com/v3.0/tracks/file/?client_id=${JAMENDO_CLIENT_ID}&track_id=${item.id}`,
-                        duration: item.duration
-                    }));
-                    setResults(formattedResults);
+                if (tracks && tracks.length > 0) {
+                    setResults(tracks);
                 } else {
-                    // Если ничего не найдено, показываем fallback треки
-                    setUsingFallback(true);
-                    setResults(FALLBACK_SEARCH_RESULTS);
-                    setError(`По запросу "${searchQuery}" ничего не найдено. Показываем демо-треки.`);
+                    setResults([]);
+                    setError(`По запросу "${searchQuery}" ничего не найдено на YouTube`);
                 }
             } catch (err) {
                 console.error("Ошибка поиска:", err);
-                setUsingFallback(true);
-                setResults(FALLBACK_SEARCH_RESULTS);
-                setError('Не удалось подключиться к серверу. Показываем демо-треки.');
+                setError('Не удалось выполнить поиск. Проверьте подключение к интернету.');
+                setResults([]);
             } finally {
                 setIsLoading(false);
             }
@@ -108,8 +133,7 @@ export default function Search() {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', height: '100%', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, display: isMobile ? 'none' : 'block' }}>
-                Результаты поиска
-                {usingFallback && <span style={{ fontSize: '14px', color: '#f1c40f', marginLeft: '10px' }}>(демо)</span>}
+                Результаты поиска на YouTube
             </h2>
 
             {error && (
@@ -135,7 +159,7 @@ export default function Search() {
                         <div style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
                             <Music size={32} color="#9B51E0" />
                         </div>
-                        <div style={{ marginTop: '12px' }}>Ищем музыку...</div>
+                        <div style={{ marginTop: '12px' }}>Ищем на YouTube...</div>
                         <style>{`
                             @keyframes spin {
                                 0% { transform: rotate(0deg); }

@@ -12,6 +12,7 @@
   "dependencies": {
     "framer-motion": "^13.1.1",
     "lucide-react": "^1.38.0",
+    "newpipe-extractor-js": "^1.0.33",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-player": "^3.4.0",

@@ -2,65 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Play, Heart, Pause, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
+import { searchYoutube, initializeNewPipe, extractStreamInfo, getBestAudioStream } from 'newpipe-extractor-js';
 
-const JAMENDO_CLIENT_ID = '9970bd20';
-
-// Запасные треки на случай, если API не работает
-const FALLBACK_TRACKS = [
-    {
-        id: 'fb1',
-        title: 'Midnight City',
-        artist: 'M83',
-        time: '4:03',
-        cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80',
-        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        duration: 243
-    },
-    {
-        id: 'fb2',
-        title: 'Starboy',
-        artist: 'The Weeknd',
-        time: '3:50',
-        cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80',
-        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-        duration: 230
-    },
-    {
-        id: 'fb3',
-        title: 'Blinding Lights',
-        artist: 'The Weeknd',
-        time: '3:20',
-        cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&q=80',
-        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-        duration: 200
-    },
-    {
-        id: 'fb4',
-        title: 'Believer',
-        artist: 'Imagine Dragons',
-        time: '3:24',
-        cover: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=100&q=80',
-        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-        duration: 204
-    },
-    {
-        id: 'fb5',
-        title: 'Radioactive',
-        artist: 'Imagine Dragons',
-        time: '3:06',
-        cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80',
-        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
-        duration: 186
-    },
-    {
-        id: 'fb6',
-        title: 'Demons',
-        artist: 'Imagine Dragons',
-        time: '2:57',
-        cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80',
-        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3',
-        duration: 177
-    },
+// Демо-треки на случай полного отказа
+const DEMO_TRACKS = [
+    { id: 'demo1', title: 'Sample Track 1', artist: 'Demo Artist', time: '3:00', cover: 'https://picsum.photos/seed/1/100/100', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+    { id: 'demo2', title: 'Sample Track 2', artist: 'Demo Artist', time: '3:30', cover: 'https://picsum.photos/seed/2/100/100', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
 ];
 
 export default function Home() {
@@ -69,7 +16,6 @@ export default function Home() {
     const [recommendedTracks, setRecommendedTracks] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [usingFallback, setUsingFallback] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -84,57 +30,98 @@ export default function Home() {
         return `${mins}:${String(secs).padStart(2, '0')}`;
     };
 
+    // Инициализация NewPipe
+    useEffect(() => {
+        try {
+            initializeNewPipe();
+            console.log('NewPipe initialized');
+        } catch (err) {
+            console.error('NewPipe init error:', err);
+        }
+    }, []);
+
+    // Поиск треков через YouTube
+    const searchYouTubeTracks = async (query) => {
+        try {
+            const searchResults = await searchYoutube(query, ['videos']);
+
+            if (searchResults && searchResults.items && searchResults.items.length > 0) {
+                const tracks = [];
+
+                for (const item of searchResults.items) {
+                    try {
+                        const videoId = item.url.split('v=')[1] || item.id;
+
+                        // Пропускаем, если нет ID
+                        if (!videoId) continue;
+
+                        // Пытаемся получить аудио поток
+                        let audioUrl = null;
+                        try {
+                            const streamInfo = await extractStreamInfo(item.url);
+                            const bestAudio = getBestAudioStream(streamInfo);
+                            if (bestAudio && bestAudio.url) {
+                                audioUrl = bestAudio.url;
+                            }
+                        } catch (streamErr) {
+                            console.warn('Не удалось извлечь аудио для:', item.name);
+                        }
+
+                        // Если не удалось получить аудио, пропускаем
+                        if (!audioUrl) continue;
+
+                        tracks.push({
+                            id: videoId,
+                            title: item.name || 'Unknown',
+                            artist: item.uploaderName || 'Unknown Artist',
+                            time: formatTime(item.duration || 0),
+                            cover: item.thumbnail || `https://picsum.photos/seed/${videoId}/100/100`,
+                            audioUrl: audioUrl,
+                            duration: item.duration || 0,
+                            videoId: videoId
+                        });
+                    } catch (itemErr) {
+                        console.warn('Ошибка обработки трека:', itemErr);
+                    }
+                }
+
+                return tracks;
+            }
+            return [];
+        } catch (err) {
+            console.error('YouTube search error:', err);
+            return [];
+        }
+    };
+
     useEffect(() => {
         const fetchTracks = async () => {
             setIsLoading(true);
             setError(null);
-            setUsingFallback(false);
 
             try {
-                let url = `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=20&order=popularity_total&include=musicinfo`;
+                const query = searchQuery.trim() || 'popular music';
+                const tracks = await searchYouTubeTracks(query);
 
-                if (searchQuery.trim()) {
-                    url = `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=20&search=${encodeURIComponent(searchQuery)}&include=musicinfo`;
-                }
-
-                const response = await fetch(url);
-
-                if (!response.ok) {
-                    throw new Error(`Ошибка API: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                if (data && data.results && data.results.length > 0) {
-                    const formattedTracks = data.results.map(item => ({
-                        id: item.id.toString(),
-                        title: item.name,
-                        artist: item.artist_name,
-                        time: formatTime(item.duration),
-                        cover: item.image || item.album_image || `https://picsum.photos/seed/${item.id}/100/100`,
-                        audioUrl: item.audio || `https://api.jamendo.com/v3.0/tracks/file/?client_id=${JAMENDO_CLIENT_ID}&track_id=${item.id}`,
-                        duration: item.duration
-                    }));
-                    setRecommendedTracks(formattedTracks);
+                if (tracks && tracks.length > 0) {
+                    setRecommendedTracks(tracks);
                 } else {
-                    // Если ничего не найдено, используем fallback треки
-                    setUsingFallback(true);
-                    setRecommendedTracks(FALLBACK_TRACKS);
+                    // Если ничего не найдено, показываем демо-треки
+                    setRecommendedTracks(DEMO_TRACKS);
                     if (searchQuery.trim()) {
                         setError(`По запросу "${searchQuery}" ничего не найдено. Показываем демо-треки.`);
                     }
                 }
             } catch (err) {
                 console.error("Ошибка загрузки треков:", err);
-                setUsingFallback(true);
-                setRecommendedTracks(FALLBACK_TRACKS);
-                setError('Не удалось подключиться к серверу. Показываем демо-треки.');
+                setRecommendedTracks(DEMO_TRACKS);
+                setError('Не удалось загрузить треки. Показываем демо-треки.');
             } finally {
                 setIsLoading(false);
             }
         };
 
-        const timeoutId = setTimeout(fetchTracks, 300);
+        const timeoutId = setTimeout(fetchTracks, 500);
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
 
@@ -166,7 +153,7 @@ export default function Home() {
                     <div style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
                         <RefreshCw size={32} color="#9B51E0" />
                     </div>
-                    <div style={{ marginTop: '12px' }}>Загрузка музыки...</div>
+                    <div style={{ marginTop: '12px' }}>Загрузка музыки с YouTube...</div>
                     <style>{`
                         @keyframes spin {
                             0% { transform: rotate(0deg); }
@@ -180,6 +167,7 @@ export default function Home() {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', height: '100%', width: '100%' }}>
+            {/* МОЯ ВОЛНА */}
             <motion.div
                 onClick={handleMyWavePlay}
                 animate={{
@@ -248,17 +236,6 @@ export default function Home() {
                             ❤️ {likedTracks.length} треков в лайках
                         </div>
                     )}
-                    {usingFallback && !isPlaying && (
-                        <div style={{
-                            padding: '6px 16px',
-                            backgroundColor: 'rgba(255,200,0,0.15)',
-                            borderRadius: '20px',
-                            fontSize: isMobile ? '12px' : '14px',
-                            color: 'rgba(255,200,0,0.8)'
-                        }}>
-                            ⚡ Демо-режим
-                        </div>
-                    )}
                 </div>
                 <div style={{
                     position: 'absolute',
@@ -268,15 +245,15 @@ export default function Home() {
                     color: 'rgba(255,255,255,0.4)',
                     zIndex: 1
                 }}>
-                    {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Рекомендуемые треки'}
+                    🎵 YouTube Music
                 </div>
             </motion.div>
 
+            {/* РЕКОМЕНДАЦИИ */}
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <div style={{ fontSize: '22px', fontWeight: 'bold' }}>
-                        {searchQuery.trim() ? `Результаты "${searchQuery}"` : 'Популярные треки'}
-                        {usingFallback && <span style={{ fontSize: '12px', color: '#f1c40f', marginLeft: '10px' }}>(демо)</span>}
+                        {searchQuery.trim() ? `Результаты "${searchQuery}"` : 'Популярные треки с YouTube'}
                     </div>
                     {searchQuery.trim() && (
                         <span style={{ fontSize: '13px', color: '#888' }}>
@@ -296,17 +273,6 @@ export default function Home() {
                         fontSize: '14px'
                     }}>
                         {error}
-                    </div>
-                )}
-
-                {recommendedTracks.length === 0 && !error && !isLoading && (
-                    <div style={{
-                        textAlign: 'center',
-                        color: '#888',
-                        padding: '40px 0'
-                    }}>
-                        <RefreshCw size={48} color="#333" style={{ marginBottom: '16px' }} />
-                        <div>Нет доступных треков</div>
                     </div>
                 )}
 
