@@ -1,18 +1,18 @@
 import React, { useRef, useEffect } from 'react';
-import { Play, Pause, SkipForward, Heart, Volume2 } from 'lucide-react';
+import { Play, Pause, SkipForward, Heart } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export default function Player({ isMobile }) {
-    const { currentTrack, isPlaying, setIsPlaying, playNext, likedTracks, toggleLike, volume, setVolume } = useStore();
+    const { currentTrack, isPlaying, setIsPlaying, playNext, likedTracks, toggleLike, volume } = useStore();
     const audioRef = useRef(null);
 
     useEffect(() => {
         if (audioRef.current) {
             audioRef.current.volume = volume;
             if (isPlaying) {
-                // Безопасный запуск с перехватом блокировки браузера
                 audioRef.current.play().catch(err => {
-                    console.warn("Браузер заблокировал автоплей:", err);
+                    // Если браузер заблокировал автоплей — просто переключаем состояние в паузу
+                    console.warn("Autoplay blocked by browser:", err);
                     setIsPlaying(false);
                 });
             } else {
@@ -24,8 +24,10 @@ export default function Player({ isMobile }) {
     if (!currentTrack) return null;
     const isLiked = likedTracks.some(t => t.id === currentTrack.id);
 
-    // Используем гарантированно работающий публичный поток или аудио из трека
-    const audioSource = currentTrack.audioUrl || `https://commondatastorage.googleapis.com/codesign-bucket/audio/sample.mp3`;
+    // Используем надежный публичный аудиопоток (или затычку, если стрим недоступен)
+    const audioSource = currentTrack.audioUrl && currentTrack.audioUrl.startsWith('http')
+        ? currentTrack.audioUrl
+        : 'https://commondatastorage.googleapis.com/codesign-bucket/audio/sample.mp3';
 
     const containerStyle = isMobile ? {
         position: 'fixed',
@@ -62,7 +64,7 @@ export default function Player({ isMobile }) {
                 ref={audioRef}
                 src={audioSource}
                 onEnded={playNext}
-                onError={(e) => console.error("Ошибка аудиоэлемента:", e)}
+                onError={(e) => console.error("Ошибка загрузки аудиопотока:", e)}
             />
 
             <img src={currentTrack.cover} alt="Cover" style={{ width: isMobile ? '40px' : '56px', height: isMobile ? '40px' : '56px', borderRadius: isMobile ? '8px' : '12px', objectFit: 'cover' }} />
