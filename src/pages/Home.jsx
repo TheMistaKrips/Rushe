@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Heart, Pause, RefreshCw, TrendingUp, ListMusic, Music2, Sparkles, Flame, Star, Crown } from 'lucide-react';
+import { Play, Heart, Pause, RefreshCw, TrendingUp, ListMusic, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
-import { searchYouTubeTracks, DEMO_TRACKS, CHARTS, PLAYLISTS } from '../config/youtube';
-import Lottie from 'lottie-react';
+import { searchYouTubeTracks, DEMO_TRACKS, PLAYLISTS } from '../config/youtube';
+import { Lottie } from 'lottie-react';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -34,9 +34,12 @@ export default function Home() {
     // Загрузка Lottie анимации
     useEffect(() => {
         fetch('/animation.json')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Not found');
+                return res.json();
+            })
             .then(data => setLottieData(data))
-            .catch(() => console.log('Lottie animation not found'));
+            .catch(() => console.log('Lottie animation not found, using fallback'));
     }, []);
 
     useEffect(() => {
@@ -145,8 +148,6 @@ export default function Home() {
                     overflow: 'hidden',
                     cursor: 'pointer',
                     boxShadow: '0 20px 60px rgba(120, 41, 220, 0.3)',
-                    background: 'linear-gradient(135deg, #7829DC, #B846EC, #7CD7F2)',
-                    backgroundSize: '300% 300%',
                 }}
             >
                 {/* Анимированный градиентный фон */}
@@ -196,9 +197,9 @@ export default function Home() {
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: isMobile ? '200px' : '300px',
-                        height: isMobile ? '200px' : '300px',
-                        opacity: 0.4,
+                        width: isMobile ? '180px' : '280px',
+                        height: isMobile ? '180px' : '280px',
+                        opacity: 0.35,
                         pointerEvents: 'none'
                     }}>
                         <Lottie
@@ -311,7 +312,7 @@ export default function Home() {
                 </div>
             </motion.div>
 
-            {/* ЧАРТЫ - без эмодзи */}
+            {/* ЧАРТЫ */}
             <motion.div variants={itemVariants}>
                 <div style={{
                     display: 'flex',
@@ -396,10 +397,12 @@ export default function Home() {
                                 boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.querySelector('.playlist-overlay').style.opacity = 1;
+                                const overlay = e.currentTarget.querySelector('.playlist-overlay');
+                                if (overlay) overlay.style.opacity = 1;
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.querySelector('.playlist-overlay').style.opacity = 0;
+                                const overlay = e.currentTarget.querySelector('.playlist-overlay');
+                                if (overlay) overlay.style.opacity = 0;
                             }}
                             onClick={() => {
                                 setSearchQuery(playlist.title);
