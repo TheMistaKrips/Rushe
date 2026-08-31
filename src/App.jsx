@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useStore } from './store/useStore';
+import { AnimatePresence } from 'framer-motion';
 
 import Home from './pages/Home';
 import Search from './pages/Search';
 import Library from './pages/Library';
 import Liked from './pages/Liked';
+import PlaylistDetail from './pages/PlaylistDetail';
 import Onboarding from './pages/Onboarding';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import YouTubePlayer from './components/YouTubePlayer';
+import FullscreenPlayer from './components/FullscreenPlayer';
 
 function AppContent() {
-  const { hasCompletedOnboarding, currentTrack } = useStore();
+  const { hasCompletedOnboarding, currentTrack, isFullscreenPlayerOpen } = useStore();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const location = useLocation();
 
@@ -53,8 +56,9 @@ function AppContent() {
   const mainAreaStyle = {
     flex: 1,
     overflowY: 'auto',
-    padding: isMobile ? '10px' : '30px',
-    paddingBottom: currentTrack ? (isMobile ? '140px' : '120px') : (isMobile ? '80px' : '30px'),
+    padding: isMobile ? '12px' : '30px',
+    paddingBottom: currentTrack ? (isMobile ? '150px' : '120px') : (isMobile ? '90px' : '30px'),
+    scrollBehavior: 'smooth'
   };
 
   return (
@@ -65,18 +69,22 @@ function AppContent() {
         {!(isMobile && location.pathname === '/search') && <Topbar isMobile={isMobile} />}
 
         <div style={mainAreaStyle}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/library" element={<Library />} />
-            <Route path="/liked" element={<Liked />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<Home />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/liked" element={<Liked />} />
+              <Route path="/playlist/:id" element={<PlaylistDetail />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AnimatePresence>
         </div>
       </div>
 
       {currentTrack && <YouTubePlayer isMobile={isMobile} />}
       {isMobile && <Sidebar isMobile={true} />}
+      <FullscreenPlayer />
     </div>
   );
 }

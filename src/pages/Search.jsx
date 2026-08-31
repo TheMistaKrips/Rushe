@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Heart, Music, AlertCircle } from 'lucide-react';
+import { Play, Heart, Music, AlertCircle, Clock, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { searchYouTubeTracks } from '../config/youtube';
 
 export default function Search() {
-    const { searchQuery, playTrack, currentTrack, likedTracks, toggleLike } = useStore();
+    const {
+        searchQuery, playTrack, currentTrack, likedTracks, toggleLike,
+        addToSearchHistory, searchHistory
+    } = useStore();
+
     const [results, setResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -35,7 +39,7 @@ export default function Search() {
                     setResults(tracks);
                 } else {
                     setResults([]);
-                    setError(`По запросу "${searchQuery}" ничего не найдено на YouTube`);
+                    setError(`По запросу "${searchQuery}" ничего не найдено`);
                 }
             } catch (err) {
                 console.error("Ошибка поиска:", err);
@@ -53,22 +57,36 @@ export default function Search() {
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
 
+    const handleTrackClick = (track) => {
+        playTrack(track, results);
+        if (track.title && track.artist) {
+            addToSearchHistory(`${track.title} ${track.artist}`);
+        }
+    };
+
     const trackListItemStyle = (isActive) => ({
         display: 'flex',
         alignItems: 'center',
         padding: '12px',
         borderRadius: '12px',
-        backgroundColor: isActive ? '#1a1a24' : 'transparent',
+        backgroundColor: isActive ? 'rgba(155, 81, 224, 0.15)' : 'transparent',
         cursor: 'pointer',
-        transition: 'background-color 0.2s',
-        gap: '12px'
+        transition: 'all 0.2s',
+        gap: '12px',
+        border: isActive ? '1px solid rgba(155, 81, 224, 0.2)' : '1px solid transparent'
     });
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', height: '100%', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, display: isMobile ? 'none' : 'block' }}>
-                Результаты поиска на YouTube
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, display: isMobile ? 'none' : 'block' }}>
+                Результаты поиска
             </h2>
+
+            {searchQuery.trim() && (
+                <div style={{ fontSize: '14px', color: '#888' }}>
+                    По запросу: <span style={{ color: '#fff', fontWeight: 'bold' }}>"{searchQuery}"</span>
+                </div>
+            )}
 
             {error && (
                 <div style={{
@@ -87,13 +105,13 @@ export default function Search() {
                 </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', overflowY: 'auto', flex: 1, paddingBottom: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', flex: 1, paddingBottom: '20px' }}>
                 {isLoading ? (
-                    <div style={{ color: '#888', textAlign: 'center', marginTop: '30px' }}>
+                    <div style={{ color: '#888', textAlign: 'center', marginTop: '40px' }}>
                         <div style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
-                            <Music size={32} color="#9B51E0" />
+                            <Music size={40} color="#9B51E0" />
                         </div>
-                        <div style={{ marginTop: '12px' }}>Поиск на YouTube...</div>
+                        <div style={{ marginTop: '16px', fontSize: '16px' }}>Поиск на YouTube...</div>
                         <style>{`
                             @keyframes spin {
                                 0% { transform: rotate(0deg); }
@@ -113,21 +131,31 @@ export default function Search() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
                                 style={trackListItemStyle(isActive)}
-                                onClick={() => playTrack(track, results)}
+                                onClick={() => handleTrackClick(track)}
+                                onMouseEnter={(e) => {
+                                    if (!isActive) {
+                                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!isActive) {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }
+                                }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', flex: 2, gap: '15px', overflow: 'hidden' }}>
-                                    <div style={{ position: 'relative', width: '45px', height: '45px', flexShrink: 0 }}>
+                                    <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
                                         <img
                                             src={track.cover}
                                             alt={track.title}
-                                            style={{ width: '100%', height: '100%', borderRadius: '8px', objectFit: 'cover' }}
+                                            style={{ width: '100%', height: '100%', borderRadius: '10px', objectFit: 'cover' }}
                                             onError={(e) => {
                                                 e.target.src = `https://picsum.photos/seed/${track.id}/100/100`;
                                             }}
                                         />
                                         {isActive && (
-                                            <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px' }}>
-                                                <Play size={16} fill="#9B51E0" color="#9B51E0" />
+                                            <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px' }}>
+                                                <Play size={20} fill="#9B51E0" color="#9B51E0" />
                                             </div>
                                         )}
                                     </div>
@@ -137,7 +165,8 @@ export default function Search() {
                                             color: isActive ? '#9B51E0' : '#fff',
                                             whiteSpace: 'nowrap',
                                             textOverflow: 'ellipsis',
-                                            overflow: 'hidden'
+                                            overflow: 'hidden',
+                                            fontSize: '14px'
                                         }}>
                                             {track.title}
                                         </span>
@@ -147,22 +176,37 @@ export default function Search() {
                                     </div>
                                 </div>
 
-                                {!isMobile && <span style={{ width: '60px', color: '#888', fontSize: '14px', textAlign: 'right', paddingRight: '20px' }}>{track.time}</span>}
+                                {!isMobile && <span style={{ width: '60px', color: '#666', fontSize: '13px', textAlign: 'right', paddingRight: '16px' }}>{track.time}</span>}
 
-                                <button
-                                    style={{ width: '40px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'center' }}
-                                    onClick={(e) => { e.stopPropagation(); toggleLike(track); }}
-                                >
-                                    <Heart size={20} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#888'} />
-                                </button>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                    <button
+                                        style={{
+                                            width: '36px',
+                                            height: '36px',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            borderRadius: '50%',
+                                            transition: 'background 0.2s'
+                                        }}
+                                        onClick={(e) => { e.stopPropagation(); toggleLike(track); }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <Heart size={18} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#666'} />
+                                    </button>
+                                </div>
                             </motion.div>
                         );
                     })
                 ) : (
-                    searchQuery && !isLoading && (
+                    !isLoading && (
                         <div style={{ textAlign: 'center', color: '#888', marginTop: '40px' }}>
                             <Music size={48} color="#333" style={{ marginBottom: '16px' }} />
-                            <div>Ничего не найдено по запросу "{searchQuery}"</div>
+                            <div style={{ fontSize: '18px' }}>Ничего не найдено</div>
                             <div style={{ fontSize: '14px', marginTop: '8px', color: '#555' }}>Попробуйте другой запрос</div>
                         </div>
                     )
