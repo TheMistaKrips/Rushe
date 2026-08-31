@@ -1,17 +1,20 @@
 // Конфигурация YouTube API
-// Получаем ключ из разных источников для совместимости с Vercel
+// Пробуем получить ключ из разных источников
 export const YOUTUBE_API_KEY =
     import.meta.env.VITE_YOUTUBE_API_KEY ||
     import.meta.env.YOUTUBE_API_KEY ||
-    import.meta.env.NEXT_PUBLIC_YOUTUBE_API_KEY ||
     '';
 
 export const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 
 // Функция для поиска треков на YouTube
 export async function searchYouTubeTracks(query, maxResults = 30) {
+    // Логируем для отладки
+    console.log('🔑 API Key:', YOUTUBE_API_KEY ? '✅ Найден' : '❌ НЕ НАЙДЕН');
+    console.log('🔍 Поиск:', query);
+
     if (!YOUTUBE_API_KEY) {
-        console.error('YouTube API key не найден!');
+        console.error('❌ YouTube API key не найден! Добавь VITE_YOUTUBE_API_KEY в Vercel');
         return DEMO_TRACKS;
     }
 
@@ -22,13 +25,21 @@ export async function searchYouTubeTracks(query, maxResults = 30) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error('YouTube API Error:', errorData);
+            console.error('❌ YouTube API Error:', errorData);
+
+            // Если ошибка связана с ключом
+            if (errorData.error?.code === 403) {
+                console.error('❌ Неверный API ключ или превышен лимит!');
+                return DEMO_TRACKS;
+            }
+
             throw new Error(`Ошибка API: ${response.status}`);
         }
 
         const data = await response.json();
 
         if (!data.items || data.items.length === 0) {
+            console.log('😕 Ничего не найдено');
             return [];
         }
 
@@ -36,7 +47,7 @@ export async function searchYouTubeTracks(query, maxResults = 30) {
         const videoIds = data.items.map(item => item.id.videoId).join(',');
         const videoDetails = await getVideoDetails(videoIds);
 
-        return data.items.map((item, index) => {
+        const tracks = data.items.map((item, index) => {
             const details = videoDetails[index] || {};
             return {
                 id: item.id.videoId,
@@ -51,9 +62,12 @@ export async function searchYouTubeTracks(query, maxResults = 30) {
                 embedUrl: `https://www.youtube.com/embed/${item.id.videoId}`
             };
         });
+
+        console.log(`✅ Найдено ${tracks.length} треков`);
+        return tracks;
     } catch (error) {
-        console.error('YouTube search error:', error);
-        throw error;
+        console.error('❌ YouTube search error:', error);
+        return DEMO_TRACKS;
     }
 }
 
