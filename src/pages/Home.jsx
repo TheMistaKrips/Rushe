@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Heart, Pause, RefreshCw, TrendingUp, ListMusic } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Heart, Pause, RefreshCw, TrendingUp, ListMusic, Music2, Sparkles, Flame, Star, Crown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { searchYouTubeTracks, DEMO_TRACKS, CHARTS, PLAYLISTS } from '../config/youtube';
+import Lottie from 'lottie-react';
 
 const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
-        transition: { staggerChildren: 0.1 }
+        transition: { staggerChildren: 0.08 }
     }
 };
 
@@ -26,9 +27,17 @@ export default function Home() {
 
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const [recommendedTracks, setRecommendedTracks] = useState([]);
-    const [popularTracks, setPopularTracks] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [lottieData, setLottieData] = useState(null);
+
+    // Загрузка Lottie анимации
+    useEffect(() => {
+        fetch('/animation.json')
+            .then(res => res.json())
+            .then(data => setLottieData(data))
+            .catch(() => console.log('Lottie animation not found'));
+    }, []);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -42,21 +51,17 @@ export default function Home() {
             setError(null);
 
             try {
-                const popular = await searchYouTubeTracks('popular music 2024 top hits', 20);
-                setPopularTracks(popular.length > 0 ? popular : DEMO_TRACKS);
-
                 if (searchQuery.trim()) {
                     const results = await searchYouTubeTracks(searchQuery, 20);
                     setRecommendedTracks(results.length > 0 ? results : DEMO_TRACKS);
                 } else {
-                    const defaultTracks = await searchYouTubeTracks('best songs 2024', 10);
+                    const defaultTracks = await searchYouTubeTracks('best songs 2024', 20);
                     setRecommendedTracks(defaultTracks.length > 0 ? defaultTracks : DEMO_TRACKS);
                 }
             } catch (err) {
                 console.error("Ошибка загрузки треков:", err);
-                setPopularTracks(DEMO_TRACKS);
                 setRecommendedTracks(DEMO_TRACKS);
-                setError('Не удалось загрузить треки. Показываем демо-треки.');
+                setError('Не удалось загрузить треки.');
             } finally {
                 setIsLoading(false);
             }
@@ -120,122 +125,200 @@ export default function Home() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            style={{ display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '20px' }}
+            style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '32px',
+                paddingBottom: '20px',
+                width: '100%'
+            }}
         >
+            {/* МОЯ ВОЛНА - с Lottie анимацией */}
             <motion.div
                 variants={itemVariants}
                 onClick={handleMyWavePlay}
-                animate={{
-                    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-                    scale: isPlaying ? [1, 1.02, 1] : 1
-                }}
-                transition={{
-                    backgroundPosition: { duration: 15, repeat: Infinity, ease: 'linear' },
-                    scale: { duration: 2, repeat: Infinity, ease: 'easeInOut' }
-                }}
                 style={{
                     width: '100%',
-                    height: isMobile ? '140px' : '200px',
-                    borderRadius: '24px',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                    height: isMobile ? '200px' : '280px',
+                    borderRadius: '28px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    boxShadow: '0 20px 60px rgba(120, 41, 220, 0.3)',
+                    background: 'linear-gradient(135deg, #7829DC, #B846EC, #7CD7F2)',
                     backgroundSize: '300% 300%',
+                }}
+            >
+                {/* Анимированный градиентный фон */}
+                <motion.div
+                    animate={{
+                        backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                    }}
+                    transition={{
+                        duration: 8,
+                        repeat: Infinity,
+                        ease: 'linear'
+                    }}
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'linear-gradient(135deg, #7829DC, #B846EC, #7CD7F2)',
+                        backgroundSize: '300% 300%',
+                    }}
+                />
+
+                {/* Световые эффекты */}
+                <div style={{
+                    position: 'absolute',
+                    top: '-50%',
+                    right: '-20%',
+                    width: '60%',
+                    height: '80%',
+                    background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
+                    borderRadius: '50%',
+                    pointerEvents: 'none'
+                }} />
+                <div style={{
+                    position: 'absolute',
+                    bottom: '-30%',
+                    left: '-10%',
+                    width: '50%',
+                    height: '60%',
+                    background: 'radial-gradient(circle, rgba(124, 215, 242, 0.2) 0%, transparent 70%)',
+                    borderRadius: '50%',
+                    pointerEvents: 'none'
+                }} />
+
+                {/* Lottie анимация */}
+                {lottieData && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: isMobile ? '200px' : '300px',
+                        height: isMobile ? '200px' : '300px',
+                        opacity: 0.4,
+                        pointerEvents: 'none'
+                    }}>
+                        <Lottie
+                            animationData={lottieData}
+                            loop={true}
+                            autoplay={true}
+                            style={{ width: '100%', height: '100%' }}
+                        />
+                    </div>
+                )}
+
+                {/* Контент */}
+                <div style={{
+                    position: 'relative',
+                    zIndex: 2,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: '0 20px 60px rgba(102, 126, 234, 0.4)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                }}
-            >
-                <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.15), transparent)',
-                    pointerEvents: 'none'
-                }} />
-
-                {isPlaying && (
-                    <>
-                        <motion.div
-                            animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0, 0.3] }}
-                            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                            style={{
-                                position: 'absolute',
-                                width: '300%',
-                                height: '300%',
-                                borderRadius: '50%',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                pointerEvents: 'none'
-                            }}
-                        />
-                        <motion.div
-                            animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0, 0.2] }}
-                            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                            style={{
-                                position: 'absolute',
-                                width: '200%',
-                                height: '200%',
-                                borderRadius: '50%',
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                pointerEvents: 'none'
-                            }}
-                        />
-                    </>
-                )}
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', zIndex: 1 }}>
-                    {isPlaying ?
-                        <Pause size={isMobile ? 32 : 44} fill="#fff" color="#fff" /> :
-                        <Play size={isMobile ? 32 : 44} fill="#fff" color="#fff" />
-                    }
-                    <h1 style={{ fontSize: isMobile ? '24px' : '40px', margin: 0, fontWeight: '900', letterSpacing: '-1px' }}>
-                        Моя волна
-                    </h1>
-                </div>
-                <div style={{ zIndex: 1, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {currentTrack && isPlaying && (
-                        <div style={{
-                            padding: '4px 14px',
-                            backgroundColor: 'rgba(255,255,255,0.15)',
-                            borderRadius: '20px',
-                            backdropFilter: 'blur(10px)',
-                            fontSize: isMobile ? '11px' : '13px',
-                            maxWidth: '80%',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                        }}>
-                            ▶ {currentTrack.title}
-                        </div>
-                    )}
-                    {!isPlaying && likedTracks.length > 0 && (
-                        <div style={{
-                            padding: '4px 14px',
-                            backgroundColor: 'rgba(255,255,255,0.1)',
-                            borderRadius: '20px',
-                            fontSize: isMobile ? '11px' : '13px',
-                            color: 'rgba(255,255,255,0.8)'
-                        }}>
-                            ❤️ {likedTracks.length} треков в лайках
-                        </div>
-                    )}
-                </div>
-                <div style={{
-                    position: 'absolute',
-                    bottom: '12px',
-                    right: '16px',
-                    fontSize: '10px',
-                    color: 'rgba(255,255,255,0.4)',
-                    zIndex: 1
+                    height: '100%',
+                    padding: '20px'
                 }}>
-                    {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Рекомендуемые треки'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        {isPlaying ? (
+                            <motion.div
+                                animate={{ scale: [1, 1.1, 1] }}
+                                transition={{ duration: 1, repeat: Infinity }}
+                            >
+                                <Pause size={isMobile ? 32 : 44} fill="#fff" color="#fff" />
+                            </motion.div>
+                        ) : (
+                            <div style={{
+                                width: isMobile ? 48 : 60,
+                                height: isMobile ? 48 : 60,
+                                borderRadius: '50%',
+                                backgroundColor: 'rgba(255,255,255,0.2)',
+                                backdropFilter: 'blur(10px)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <Play size={isMobile ? 24 : 32} fill="#fff" color="#fff" />
+                            </div>
+                        )}
+                        <h1 style={{
+                            fontSize: isMobile ? '28px' : '44px',
+                            margin: 0,
+                            fontWeight: '900',
+                            letterSpacing: '-1px',
+                            color: '#fff',
+                            textShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                        }}>
+                            Моя волна
+                        </h1>
+                    </div>
+
+                    {currentTrack && isPlaying && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{
+                                marginTop: '12px',
+                                padding: '8px 20px',
+                                backgroundColor: 'rgba(255,255,255,0.15)',
+                                backdropFilter: 'blur(20px)',
+                                borderRadius: '30px',
+                                fontSize: isMobile ? '13px' : '15px',
+                                maxWidth: '80%',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                color: '#fff',
+                                border: '1px solid rgba(255,255,255,0.1)'
+                            }}
+                        >
+                            ▶ {currentTrack.title} — {currentTrack.artist}
+                        </motion.div>
+                    )}
+
+                    {!isPlaying && likedTracks.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{
+                                marginTop: '12px',
+                                padding: '6px 16px',
+                                backgroundColor: 'rgba(255,255,255,0.1)',
+                                backdropFilter: 'blur(20px)',
+                                borderRadius: '20px',
+                                fontSize: isMobile ? '12px' : '14px',
+                                color: 'rgba(255,255,255,0.8)',
+                                border: '1px solid rgba(255,255,255,0.05)'
+                            }}
+                        >
+                            ❤️ {likedTracks.length} треков в лайках
+                        </motion.div>
+                    )}
+
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '16px',
+                        right: '20px',
+                        fontSize: '11px',
+                        color: 'rgba(255,255,255,0.5)',
+                        zIndex: 2,
+                        letterSpacing: '0.5px'
+                    }}>
+                        {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Рекомендуемые треки'}
+                    </div>
                 </div>
             </motion.div>
 
+            {/* ЧАРТЫ - без эмодзи */}
             <motion.div variants={itemVariants}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginBottom: '16px'
+                }}>
                     <TrendingUp size={22} color="#9B51E0" />
                     <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>Чарты</h2>
                 </div>
@@ -244,33 +327,51 @@ export default function Home() {
                     gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
                     gap: '12px'
                 }}>
-                    {CHARTS.map((chart) => (
+                    {[
+                        { id: '1', title: 'Топ 100 Мира' },
+                        { id: '2', title: 'Поп-хиты' },
+                        { id: '3', title: 'Танцевальные' },
+                        { id: '4', title: 'Рок легенды' },
+                        { id: '5', title: 'Инструментал' },
+                    ].map((chart) => (
                         <motion.div
                             key={chart.id}
-                            whileHover={{ scale: 1.03, y: -4 }}
-                            transition={{ type: 'spring', stiffness: 300 }}
+                            whileHover={{ scale: 1.04, y: -4 }}
+                            transition={{ type: 'spring', stiffness: 400 }}
                             style={{
-                                padding: '16px',
-                                backgroundColor: 'rgba(26, 26, 36, 0.6)',
+                                padding: '18px 12px',
+                                background: 'linear-gradient(135deg, rgba(120, 41, 220, 0.2), rgba(184, 70, 236, 0.1))',
                                 borderRadius: '16px',
-                                border: '1px solid #1f1f2e',
+                                border: '1px solid rgba(120, 41, 220, 0.15)',
                                 cursor: 'pointer',
                                 textAlign: 'center',
                                 transition: 'all 0.3s'
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#9B51E0'}
-                            onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1f1f2e'}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = '#9B51E0';
+                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(120, 41, 220, 0.3), rgba(184, 70, 236, 0.2))';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = 'rgba(120, 41, 220, 0.15)';
+                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(120, 41, 220, 0.2), rgba(184, 70, 236, 0.1))';
+                            }}
                             onClick={() => {
-                                setSearchQuery(chart.title.replace(/[^\w\s]/g, '').trim());
+                                setSearchQuery(chart.title);
                             }}
                         >
-                            <div style={{ fontSize: '28px', marginBottom: '4px' }}>{chart.icon}</div>
-                            <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{chart.title}</div>
+                            <div style={{
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                color: '#fff'
+                            }}>
+                                {chart.title}
+                            </div>
                         </motion.div>
                     ))}
                 </div>
             </motion.div>
 
+            {/* ПОПУЛЯРНЫЕ ПЛЕЙЛИСТЫ */}
             <motion.div variants={itemVariants}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                     <ListMusic size={22} color="#9B51E0" />
@@ -284,14 +385,15 @@ export default function Home() {
                     {PLAYLISTS.map((playlist) => (
                         <motion.div
                             key={playlist.id}
-                            whileHover={{ scale: 1.03, y: -4 }}
-                            transition={{ type: 'spring', stiffness: 300 }}
+                            whileHover={{ scale: 1.04, y: -4 }}
+                            transition={{ type: 'spring', stiffness: 400 }}
                             style={{
                                 borderRadius: '16px',
                                 overflow: 'hidden',
                                 cursor: 'pointer',
                                 position: 'relative',
-                                aspectRatio: '1/1'
+                                aspectRatio: '1/1',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.querySelector('.playlist-overlay').style.opacity = 1;
@@ -311,7 +413,7 @@ export default function Home() {
                             <div className="playlist-overlay" style={{
                                 position: 'absolute',
                                 inset: 0,
-                                background: 'linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 60%)',
+                                background: 'linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 50%)',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 justifyContent: 'flex-end',
@@ -319,19 +421,40 @@ export default function Home() {
                                 opacity: 0,
                                 transition: 'opacity 0.3s'
                             }}>
-                                <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{playlist.title}</div>
-                                <div style={{ fontSize: '11px', color: '#888' }}>{playlist.tracks} треков</div>
+                                <div style={{
+                                    fontSize: '14px',
+                                    fontWeight: 'bold',
+                                    color: '#fff',
+                                    textShadow: '0 2px 10px rgba(0,0,0,0.5)'
+                                }}>
+                                    {playlist.title}
+                                </div>
+                                <div style={{
+                                    fontSize: '12px',
+                                    color: 'rgba(255,255,255,0.6)'
+                                }}>
+                                    {playlist.tracks} треков
+                                </div>
                             </div>
                         </motion.div>
                     ))}
                 </div>
             </motion.div>
 
+            {/* РЕКОМЕНДУЕМЫЕ ТРЕКИ */}
             <motion.div variants={itemVariants}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>
-                        {searchQuery.trim() ? `Результаты "${searchQuery}"` : 'Рекомендуем'}
-                    </h2>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '16px'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Sparkles size={22} color="#9B51E0" />
+                        <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>
+                            {searchQuery.trim() ? `Результаты "${searchQuery}"` : 'Рекомендуем'}
+                        </h2>
+                    </div>
                     {searchQuery.trim() && (
                         <span style={{ fontSize: '13px', color: '#888' }}>
                             {recommendedTracks.length} треков
@@ -363,44 +486,72 @@ export default function Home() {
                                 key={track.id}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
+                                transition={{ delay: index * 0.04 }}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    padding: '10px 12px',
-                                    borderRadius: '12px',
+                                    padding: '10px 14px',
+                                    borderRadius: '14px',
                                     backgroundColor: isActive ? 'rgba(155, 81, 224, 0.15)' : 'transparent',
                                     cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    border: isActive ? '1px solid rgba(155, 81, 224, 0.2)' : '1px solid transparent'
+                                    transition: 'all 0.3s',
+                                    border: isActive ? '1px solid rgba(155, 81, 224, 0.2)' : '1px solid transparent',
+                                    gap: '12px'
                                 }}
                                 onClick={() => handleTrackClick(track)}
                                 onMouseEnter={(e) => {
                                     if (!isActive) {
                                         e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
                                     }
                                 }}
                                 onMouseLeave={(e) => {
                                     if (!isActive) {
                                         e.currentTarget.style.backgroundColor = 'transparent';
+                                        e.currentTarget.style.borderColor = 'transparent';
                                     }
                                 }}
                             >
-                                <img
-                                    src={track.cover}
-                                    alt={track.title}
-                                    style={{
-                                        width: '48px',
-                                        height: '48px',
-                                        borderRadius: '10px',
-                                        objectFit: 'cover',
-                                        flexShrink: 0
-                                    }}
-                                    onError={(e) => {
-                                        e.target.src = `https://picsum.photos/seed/${track.id}/100/100`;
-                                    }}
-                                />
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '14px', overflow: 'hidden' }}>
+                                <div style={{ position: 'relative', flexShrink: 0 }}>
+                                    <img
+                                        src={track.cover}
+                                        alt={track.title}
+                                        style={{
+                                            width: '48px',
+                                            height: '48px',
+                                            borderRadius: '10px',
+                                            objectFit: 'cover'
+                                        }}
+                                        onError={(e) => {
+                                            e.target.src = `https://picsum.photos/seed/${track.id}/100/100`;
+                                        }}
+                                    />
+                                    {isActive && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            borderRadius: '10px',
+                                            backgroundColor: 'rgba(155, 81, 224, 0.3)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <div style={{
+                                                width: '20px',
+                                                height: '20px',
+                                                borderRadius: '50%',
+                                                backgroundColor: '#9B51E0',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <Play size={10} fill="#fff" color="#fff" />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                                     <span style={{
                                         fontWeight: isActive ? 'bold' : 'normal',
                                         color: isActive ? '#9B51E0' : '#fff',
@@ -414,16 +565,25 @@ export default function Home() {
                                     <span style={{ fontSize: '12px', color: '#888' }}>{track.artist}</span>
                                 </div>
 
-                                {!isMobile && <span style={{ fontSize: '13px', color: '#666', marginRight: '12px' }}>{track.time}</span>}
+                                {!isMobile && (
+                                    <span style={{ fontSize: '13px', color: '#666', marginRight: '8px' }}>
+                                        {track.time}
+                                    </span>
+                                )}
 
                                 <button
                                     style={{
                                         background: 'none',
                                         border: 'none',
-                                        padding: '8px',
+                                        padding: '6px',
                                         cursor: 'pointer',
                                         borderRadius: '50%',
-                                        transition: 'background 0.2s'
+                                        transition: 'all 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: '32px',
+                                        height: '32px'
                                     }}
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -432,7 +592,11 @@ export default function Home() {
                                     onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                 >
-                                    <Heart size={18} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#666'} />
+                                    <Heart
+                                        size={18}
+                                        fill={isLiked ? '#FF2A54' : 'none'}
+                                        color={isLiked ? '#FF2A54' : '#666'}
+                                    />
                                 </button>
                             </motion.div>
                         );
