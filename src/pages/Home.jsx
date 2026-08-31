@@ -458,27 +458,8 @@ export default function Home() {
                 </div>
             </motion.div>
 
-            {/* РЕКОМЕНДУЕМЫЕ ТРЕКИ */}
+            {/* РЕКОМЕНДУЕМЫЕ ТРЕКИ - БЕЗ ЗАГОЛОВКА */}
             <motion.div variants={itemVariants}>
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '16px'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Sparkles size={22} color="#9B51E0" />
-                        <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>
-                            {searchQuery.trim() ? `Результаты "${searchQuery}"` : 'Рекомендуем'}
-                        </h2>
-                    </div>
-                    {searchQuery.trim() && (
-                        <span style={{ fontSize: '13px', color: '#888' }}>
-                            {recommendedTracks.length} треков
-                        </span>
-                    )}
-                </div>
-
                 {error && (
                     <div style={{
                         backgroundColor: 'rgba(255, 200, 0, 0.1)',
