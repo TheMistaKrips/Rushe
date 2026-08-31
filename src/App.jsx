@@ -9,7 +9,7 @@ import Liked from './pages/Liked';
 import Onboarding from './pages/Onboarding';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
-import Player from './components/Player';
+import YouTubePlayer from './components/YouTubePlayer';
 
 function AppContent() {
   const { hasCompletedOnboarding, currentTrack } = useStore();
@@ -75,13 +75,12 @@ function AppContent() {
         </div>
       </div>
 
-      {currentTrack && <Player isMobile={isMobile} />}
+      {currentTrack && <YouTubePlayer isMobile={isMobile} />}
       {isMobile && <Sidebar isMobile={true} />}
     </div>
   );
 }
 
-// BrowserRouter ТОЛЬКО ЗДЕСЬ - один раз!
 export default function App() {
   return (
     <BrowserRouter>

@@ -2,101 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, Heart, Pause, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
-import axios from 'axios';
-
-const RECCOBEATS_API = 'https://api.reccobeats.com/v1';
-
-// Рабочие Invidious инстансы (обновленные)
-const INVIDIOUS_INSTANCES = [
-    'https://inv.odyssey346.dev',
-    'https://inv.bp.kiwi',
-    'https://inv.nadeko.net',
-    'https://inv.in.projectsegfau.lt',
-    'https://inv.nerdvpn.de',
-    'https://invidious.nerdvpn.de',
-    'https://invidious.sethforprivacy.com',
-    'https://y.com.sb',
-    'https://invidious.fdn.fr',
-    'https://inv.riverside.rocks',
-];
-
-// Демо треки
-const DEMO_TRACKS = [
-    { id: 'demo1', title: 'Sample Track 1', artist: 'Demo Artist', time: '3:00', cover: 'https://picsum.photos/seed/1/100/100', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
-    { id: 'demo2', title: 'Sample Track 2', artist: 'Demo Artist', time: '3:30', cover: 'https://picsum.photos/seed/2/100/100', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
-];
-
-// Поиск через ReccoBeats API
-async function searchReccoBeats(query) {
-    try {
-        const response = await axios.get(`${RECCOBEATS_API}/track/search`, {
-            params: {
-                searchText: query,
-                size: 30,
-                page: 0
-            },
-            timeout: 10000
-        });
-
-        if (response.data && response.data.content && response.data.content.length > 0) {
-            return response.data.content.map(item => ({
-                id: item.id,
-                title: item.trackTitle || item.name || 'Unknown',
-                artist: item.artists && item.artists.length > 0 ? item.artists[0].name : 'Unknown Artist',
-                time: formatDuration(item.durationMs ? Math.floor(item.durationMs / 1000) : 0),
-                cover: item.album?.cover || `https://picsum.photos/seed/${item.id}/100/100`,
-                audioUrl: null, // Будет получено через YouTube
-                duration: item.durationMs ? Math.floor(item.durationMs / 1000) : 0,
-                isrc: item.isrc || null
-            }));
-        }
-        return [];
-    } catch (err) {
-        console.error('ReccoBeats search error:', err);
-        return [];
-    }
-}
-
-// Поиск на YouTube через Invidious
-async function searchYouTubeInvidious(query) {
-    for (const instance of INVIDIOUS_INSTANCES) {
-        try {
-            const response = await axios.get(`${instance}/api/v1/search`, {
-                params: {
-                    q: query,
-                    type: 'video',
-                    sort: 'relevance',
-                    limit: 20
-                },
-                timeout: 8000
-            });
-
-            if (response.data && response.data.length > 0) {
-                return response.data.map(item => ({
-                    id: item.videoId,
-                    title: item.title || 'Unknown',
-                    artist: item.author || 'Unknown Artist',
-                    time: formatDuration(item.lengthSeconds || 0),
-                    cover: `https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg`,
-                    audioUrl: null,
-                    duration: item.lengthSeconds || 0,
-                    videoId: item.videoId,
-                    youtubeUrl: `https://www.youtube.com/watch?v=${item.videoId}`
-                }));
-            }
-        } catch (err) {
-            continue;
-        }
-    }
-    return [];
-}
-
-const formatDuration = (seconds) => {
-    if (!seconds) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${String(secs).padStart(2, '0')}`;
-};
+import { searchYouTubeTracks, DEMO_TRACKS } from '../config/youtube';
 
 export default function Home() {
     const { playTrack, currentTrack, isPlaying, setIsPlaying, likedTracks, toggleLike, searchQuery } = useStore();
@@ -117,26 +23,17 @@ export default function Home() {
             setError(null);
 
             try {
-                const query = searchQuery.trim() || 'popular music';
-                let tracks = [];
+                const query = searchQuery.trim() || 'popular music 2024';
+                const tracks = await searchYouTubeTracks(query, 30);
 
-                // Сначала пробуем ReccoBeats
-                tracks = await searchReccoBeats(query);
-
-                // Если ничего не найдено, пробуем YouTube
-                if (!tracks || tracks.length === 0) {
-                    tracks = await searchYouTubeInvidious(query);
-                }
-
-                // Если все еще ничего нет - демо треки
-                if (!tracks || tracks.length === 0) {
-                    tracks = DEMO_TRACKS;
+                if (tracks && tracks.length > 0) {
+                    setRecommendedTracks(tracks);
+                } else {
+                    setRecommendedTracks(DEMO_TRACKS);
                     if (searchQuery.trim()) {
                         setError(`По запросу "${searchQuery}" ничего не найдено. Показываем демо-треки.`);
                     }
                 }
-
-                setRecommendedTracks(tracks);
             } catch (err) {
                 console.error("Ошибка загрузки треков:", err);
                 setRecommendedTracks(DEMO_TRACKS);
@@ -178,7 +75,7 @@ export default function Home() {
                     <div style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
                         <RefreshCw size={32} color="#9B51E0" />
                     </div>
-                    <div style={{ marginTop: '12px' }}>Загрузка музыки...</div>
+                    <div style={{ marginTop: '12px' }}>Загрузка музыки с YouTube...</div>
                     <style>{`
                         @keyframes spin {
                             0% { transform: rotate(0deg); }
@@ -269,14 +166,14 @@ export default function Home() {
                     color: 'rgba(255,255,255,0.4)',
                     zIndex: 1
                 }}>
-                    🎵 Музыка
+                    🎵 YouTube Music
                 </div>
             </motion.div>
 
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <div style={{ fontSize: '22px', fontWeight: 'bold' }}>
-                        {searchQuery.trim() ? `Результаты "${searchQuery}"` : 'Популярные треки'}
+                        {searchQuery.trim() ? `Результаты "${searchQuery}"` : 'Популярные треки с YouTube'}
                     </div>
                     {searchQuery.trim() && (
                         <span style={{ fontSize: '13px', color: '#888' }}>
