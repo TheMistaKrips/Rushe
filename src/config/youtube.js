@@ -127,8 +127,8 @@ export const CHARTS = [
 
 // Популярные плейлисты для главной
 export const PLAYLISTS = [
-    { id: 'pl1', title: 'Утренний кофе', cover: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200&q=80', tracks: 45 },
-    { id: 'pl2', title: 'Вечерний релакс', cover: 'https://images.unsplash.com/photo-1519682577862-22b62b24e493?w=200&q=80', tracks: 32 },
-    { id: 'pl3', title: 'Для тренировок', cover: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&q=80', tracks: 28 },
-    { id: 'pl4', title: 'Романтический', cover: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=200&q=80', tracks: 19 },
+    { id: 'pl1', title: 'Утренний кофе', cover: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', tracks: 45 },
+    { id: 'pl2', title: 'Вечерний релакс', cover: 'https://images.unsplash.com/photo-1471180625745-944903837c22?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', tracks: 32 },
+    { id: 'pl3', title: 'Для тренировок', cover: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', tracks: 28 },
+    { id: 'pl4', title: 'Романтический', cover: 'https://images.unsplash.com/reserve/Af0sF2OS5S5gatqrKzVP_Silhoutte.jpg?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', tracks: 19 },
 ];
