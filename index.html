@@ -3,23 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/rushe_logo_colored.png" />
+    <link rel="apple-touch-icon" href="/rushe_logo_colored.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>RushE - Music Streaming</title>
     <style>
-      /* Базовый сброс стилей, чтобы inline-стили работали предсказуемо */
       html, body {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
-        background-color: #0d0d12; /* Темный фон из дизайна */
+        background-color: #0d0d12;
         color: #ffffff;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        overflow: hidden; /* Скрываем общий скролл, скроллить будем контентную часть */
+        overflow: hidden;
       }
       * {
         box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent; /* Убираем синее выделение при клике на мобилках */
+        -webkit-tap-highlight-color: transparent;
       }
       #root {
         width: 100%;
@@ -27,7 +27,6 @@
         display: flex;
       }
       
-      /* Стили для скроллбара под дизайн */
       ::-webkit-scrollbar {
         width: 6px;
       }

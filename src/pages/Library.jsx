@@ -1,107 +1,154 @@
-import React, { useState } from 'react';
-import { Heart, Plus, Trash2, Music } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { Heart, Music, Plus, Trash2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export default function Library() {
-    const { likedTracks, myPlaylists, createPlaylist, deletePlaylist, playTrack, currentTrack, toggleLike } = useStore();
-    const [activeTab, setActiveTab] = useState('liked');
+    const { likedTracks, myPlaylists, createPlaylist, deletePlaylist } = useStore();
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [showCreate, setShowCreate] = useState(false);
     const [newPlaylistName, setNewPlaylistName] = useState('');
-    const [isMobile] = useState(window.innerWidth < 768);
 
-    const handleCreatePlaylist = (e) => {
-        e.preventDefault();
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const handleCreatePlaylist = () => {
         if (newPlaylistName.trim()) {
-            createPlaylist(newPlaylistName);
+            createPlaylist(newPlaylistName.trim());
             setNewPlaylistName('');
+            setShowCreate(false);
         }
     };
 
-    const tabStyle = (isActive) => ({
-        fontSize: isMobile ? '16px' : '20px',
-        fontWeight: 'bold',
-        color: isActive ? '#fff' : '#666',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '0 0 10px 0',
-        borderBottom: isActive ? '3px solid #9B51E0' : '3px solid transparent',
-        transition: 'all 0.2s ease',
-        flex: isMobile ? 1 : 'none',
-        textAlign: 'center'
-    });
-
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', borderBottom: '1px solid #1f1f2e', paddingBottom: '10px' }}>
-                <button style={tabStyle(activeTab === 'liked')} onClick={() => setActiveTab('liked')}>Любимые</button>
-                <button style={tabStyle(activeTab === 'playlists')} onClick={() => setActiveTab('playlists')}>Плейлисты</button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', height: '100%', width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0 }}>Медиатека</h1>
+                <button
+                    onClick={() => setShowCreate(!showCreate)}
+                    style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#9B51E0',
+                        border: 'none',
+                        borderRadius: '12px',
+                        color: '#fff',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}
+                >
+                    <Plus size={18} />
+                    Создать
+                </button>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '20px' }}>
-                {activeTab === 'liked' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        {likedTracks.length === 0 ? (
-                            <div style={{ textAlign: 'center', color: '#666', marginTop: '40px' }}>Нет добавленных треков</div>
-                        ) : (
-                            likedTracks.map(track => {
-                                const isActive = currentTrack?.id === track.id;
-                                return (
-                                    <motion.div
-                                        key={track.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        style={{ display: 'flex', alignItems: 'center', padding: '12px', borderRadius: '12px', backgroundColor: isActive ? '#1a1a24' : 'transparent', cursor: 'pointer' }}
-                                        onClick={() => playTrack(track, likedTracks)}
-                                    >
-                                        <img src={track.cover} alt={track.title} style={{ width: '45px', height: '45px', borderRadius: '8px', objectFit: 'cover' }} />
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '15px', overflow: 'hidden' }}>
-                                            <span style={{ fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#9B51E0' : '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{track.title}</span>
-                                            <span style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{track.artist}</span>
-                                        </div>
-                                        <button style={{ background: 'none', border: 'none', padding: '10px', display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); toggleLike(track); }}>
-                                            <Heart size={20} fill="#FF2A54" color="#FF2A54" />
-                                        </button>
-                                    </motion.div>
-                                );
-                            })
-                        )}
+            {showCreate && (
+                <div style={{
+                    display: 'flex',
+                    gap: '10px',
+                    backgroundColor: '#1a1a24',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    alignItems: 'center'
+                }}>
+                    <input
+                        type="text"
+                        placeholder="Название плейлиста"
+                        value={newPlaylistName}
+                        onChange={(e) => setNewPlaylistName(e.target.value)}
+                        style={{
+                            flex: 1,
+                            padding: '10px 15px',
+                            backgroundColor: '#0d0d12',
+                            border: '1px solid #2a2a35',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontSize: '14px',
+                            outline: 'none'
+                        }}
+                    />
+                    <button
+                        onClick={handleCreatePlaylist}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: '#9B51E0',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        Создать
+                    </button>
+                    <button
+                        onClick={() => setShowCreate(false)}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: 'transparent',
+                            border: '1px solid #2a2a35',
+                            borderRadius: '8px',
+                            color: '#888',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Отмена
+                    </button>
+                </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+                <div style={{
+                    backgroundColor: '#1a1a24',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    border: '1px solid #2a2a35'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <Heart size={24} color="#FF2A54" fill="#FF2A54" />
+                        <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Любимые треки</span>
                     </div>
-                )}
+                    <div style={{ fontSize: '14px', color: '#888' }}>{likedTracks.length} треков</div>
+                </div>
 
-                {activeTab === 'playlists' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <form onSubmit={handleCreatePlaylist} style={{ display: 'flex', gap: '10px' }}>
-                            <input
-                                type="text"
-                                placeholder="Новый плейлист..."
-                                value={newPlaylistName}
-                                onChange={(e) => setNewPlaylistName(e.target.value)}
-                                style={{ flex: 1, height: '46px', borderRadius: '12px', backgroundColor: '#1a1a24', border: '1px solid #2a2a35', color: '#fff', padding: '0 15px', outline: 'none' }}
-                            />
-                            <button type="submit" style={{ height: '46px', padding: '0 20px', borderRadius: '12px', backgroundColor: '#9B51E0', color: '#fff', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
-                                <Plus size={20} />
-                            </button>
-                        </form>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '15px' }}>
-                            {myPlaylists.map(playlist => (
-                                <div key={playlist.id} style={{ backgroundColor: '#1a1a24', borderRadius: '16px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px', border: '1px solid #2a2a35' }}>
-                                    <div style={{ width: '100%', aspectRatio: '1', backgroundColor: '#2a2a35', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Music size={32} color="#666" />
-                                    </div>
-                                    <div style={{ fontWeight: 'bold', fontSize: '14px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{playlist.name}</div>
-                                    <div style={{ color: '#666', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span>{playlist.tracks.length} треков</span>
-                                        <button onClick={() => deletePlaylist(playlist.id)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: '5px' }}>
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                {myPlaylists.map((playlist) => (
+                    <div
+                        key={playlist.id}
+                        style={{
+                            backgroundColor: '#1a1a24',
+                            borderRadius: '16px',
+                            padding: '20px',
+                            border: '1px solid #2a2a35',
+                            position: 'relative'
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <Music size={24} color="#9B51E0" />
+                            <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{playlist.name}</span>
                         </div>
+                        <div style={{ fontSize: '14px', color: '#888' }}>{playlist.tracks?.length || 0} треков</div>
+                        <button
+                            onClick={() => deletePlaylist(playlist.id)}
+                            style={{
+                                position: 'absolute',
+                                top: '12px',
+                                right: '12px',
+                                background: 'none',
+                                border: 'none',
+                                color: '#666',
+                                cursor: 'pointer',
+                                padding: '5px'
+                            }}
+                        >
+                            <Trash2 size={18} />
+                        </button>
                     </div>
-                )}
+                ))}
             </div>
         </div>
     );

@@ -1,8 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Search, Library } from 'lucide-react';
+import { Home, Search, Library, Heart, LogOut } from 'lucide-react';
+import { useStore } from '../store/useStore';
 
 export default function Sidebar({ isMobile }) {
+    const { userProfile } = useStore();
+
     const sidebarStyle = isMobile ? {
         position: 'fixed',
         bottom: 0,
@@ -45,11 +48,25 @@ export default function Sidebar({ isMobile }) {
         flex: isMobile ? '1' : 'none'
     });
 
+    const handleLogout = () => {
+        localStorage.removeItem('rushe-storage');
+        window.location.reload();
+    };
+
     return (
         <nav style={sidebarStyle}>
             {!isMobile && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px', paddingLeft: '10px' }}>
-                    <img src="/rushe_logo.png" alt="RushE" style={{ width: '28px', filter: 'invert(1)' }} />
+                    <img src="/rushe_logo_colored.png" alt="RushE" style={{ width: '32px', height: '32px' }}
+                        onError={(e) => {
+                            e.target.style.display = 'none';
+                            const parent = e.target.parentElement;
+                            const span = document.createElement('span');
+                            span.style.cssText = 'font-size: 28px; font-weight: bold; color: #9B51E0;';
+                            span.textContent = 'R';
+                            parent.appendChild(span);
+                        }}
+                    />
                     <span style={{ fontSize: '22px', fontWeight: 'bold' }}>RushE</span>
                 </div>
             )}
@@ -79,11 +96,69 @@ export default function Sidebar({ isMobile }) {
                         </>
                     )}
                 </NavLink>
+                <NavLink to="/liked" style={getLinkStyle}>
+                    {({ isActive }) => (
+                        <>
+                            <Heart size={isMobile ? 26 : 22} color={isActive ? '#fff' : '#666'} />
+                            <span>Лайки</span>
+                        </>
+                    )}
+                </NavLink>
             </div>
 
             {!isMobile && (
-                <div style={{ marginTop: 'auto', padding: '20px 10px', color: '#666', fontSize: '12px', lineHeight: '1.5' }}>
-                    RushE - музыка без ограничений
+                <div style={{ marginTop: 'auto', padding: '20px 10px', borderTop: '1px solid #1f1f2e' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            backgroundColor: '#2a2a35',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            {userProfile?.avatar ? (
+                                <img src={userProfile.avatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <span style={{ fontSize: '18px' }}>👤</span>
+                            )}
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{userProfile?.name || 'Гость'}</div>
+                            <div style={{ fontSize: '11px', color: '#666' }}>Пользователь</div>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleLogout}
+                        style={{
+                            width: '100%',
+                            padding: '8px',
+                            background: 'none',
+                            border: '1px solid #2a2a35',
+                            borderRadius: '8px',
+                            color: '#888',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#FF2A54';
+                            e.currentTarget.style.color = '#FF2A54';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = '#2a2a35';
+                            e.currentTarget.style.color = '#888';
+                        }}
+                    >
+                        <LogOut size={16} />
+                        Выйти
+                    </button>
                 </div>
             )}
         </nav>

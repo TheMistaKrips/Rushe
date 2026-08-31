@@ -5,15 +5,15 @@ export const useStore = create(
     persist(
         (set, get) => ({
             // --- ПРОФИЛЬ И ОНБОРДИНГ ---
-            userProfile: { name: '', avatar: '' },
+            userProfile: { name: '', avatar: '', email: '' },
             hasCompletedOnboarding: false,
             favoriteGenres: [],
-            searchQuery: '', // Глобальный поиск
+            searchQuery: '',
 
             setSearchQuery: (query) => set({ searchQuery: query }),
 
-            completeOnboarding: (name, avatar, genres) => set({
-                userProfile: { name, avatar },
+            completeOnboarding: (name, avatar, genres, email = '') => set({
+                userProfile: { name, avatar, email },
                 hasCompletedOnboarding: true,
                 favoriteGenres: genres
             }),
