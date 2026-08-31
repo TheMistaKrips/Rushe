@@ -5,12 +5,71 @@ import { useStore } from '../store/useStore';
 
 const JAMENDO_CLIENT_ID = '9970bd20';
 
+// Запасные треки на случай, если API не работает
+const FALLBACK_TRACKS = [
+    {
+        id: 'fb1',
+        title: 'Midnight City',
+        artist: 'M83',
+        time: '4:03',
+        cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80',
+        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+        duration: 243
+    },
+    {
+        id: 'fb2',
+        title: 'Starboy',
+        artist: 'The Weeknd',
+        time: '3:50',
+        cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80',
+        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+        duration: 230
+    },
+    {
+        id: 'fb3',
+        title: 'Blinding Lights',
+        artist: 'The Weeknd',
+        time: '3:20',
+        cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&q=80',
+        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+        duration: 200
+    },
+    {
+        id: 'fb4',
+        title: 'Believer',
+        artist: 'Imagine Dragons',
+        time: '3:24',
+        cover: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=100&q=80',
+        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+        duration: 204
+    },
+    {
+        id: 'fb5',
+        title: 'Radioactive',
+        artist: 'Imagine Dragons',
+        time: '3:06',
+        cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80',
+        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
+        duration: 186
+    },
+    {
+        id: 'fb6',
+        title: 'Demons',
+        artist: 'Imagine Dragons',
+        time: '2:57',
+        cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80',
+        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3',
+        duration: 177
+    },
+];
+
 export default function Home() {
     const { playTrack, currentTrack, isPlaying, setIsPlaying, likedTracks, toggleLike, searchQuery } = useStore();
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const [recommendedTracks, setRecommendedTracks] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [usingFallback, setUsingFallback] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -29,6 +88,7 @@ export default function Home() {
         const fetchTracks = async () => {
             setIsLoading(true);
             setError(null);
+            setUsingFallback(false);
 
             try {
                 let url = `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=20&order=popularity_total&include=musicinfo`;
@@ -57,15 +117,18 @@ export default function Home() {
                     }));
                     setRecommendedTracks(formattedTracks);
                 } else {
-                    setRecommendedTracks([]);
+                    // Если ничего не найдено, используем fallback треки
+                    setUsingFallback(true);
+                    setRecommendedTracks(FALLBACK_TRACKS);
                     if (searchQuery.trim()) {
-                        setError('По вашему запросу ничего не найдено');
+                        setError(`По запросу "${searchQuery}" ничего не найдено. Показываем демо-треки.`);
                     }
                 }
             } catch (err) {
                 console.error("Ошибка загрузки треков:", err);
-                setError('Не удалось загрузить треки. Проверьте подключение к интернету.');
-                setRecommendedTracks([]);
+                setUsingFallback(true);
+                setRecommendedTracks(FALLBACK_TRACKS);
+                setError('Не удалось подключиться к серверу. Показываем демо-треки.');
             } finally {
                 setIsLoading(false);
             }
@@ -185,6 +248,17 @@ export default function Home() {
                             ❤️ {likedTracks.length} треков в лайках
                         </div>
                     )}
+                    {usingFallback && !isPlaying && (
+                        <div style={{
+                            padding: '6px 16px',
+                            backgroundColor: 'rgba(255,200,0,0.15)',
+                            borderRadius: '20px',
+                            fontSize: isMobile ? '12px' : '14px',
+                            color: 'rgba(255,200,0,0.8)'
+                        }}>
+                            ⚡ Демо-режим
+                        </div>
+                    )}
                 </div>
                 <div style={{
                     position: 'absolute',
@@ -194,7 +268,7 @@ export default function Home() {
                     color: 'rgba(255,255,255,0.4)',
                     zIndex: 1
                 }}>
-                    {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Популярные треки'}
+                    {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Рекомендуемые треки'}
                 </div>
             </motion.div>
 
@@ -202,6 +276,7 @@ export default function Home() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <div style={{ fontSize: '22px', fontWeight: 'bold' }}>
                         {searchQuery.trim() ? `Результаты "${searchQuery}"` : 'Популярные треки'}
+                        {usingFallback && <span style={{ fontSize: '12px', color: '#f1c40f', marginLeft: '10px' }}>(демо)</span>}
                     </div>
                     {searchQuery.trim() && (
                         <span style={{ fontSize: '13px', color: '#888' }}>
@@ -212,12 +287,13 @@ export default function Home() {
 
                 {error && (
                     <div style={{
-                        backgroundColor: 'rgba(255, 42, 84, 0.1)',
-                        border: '1px solid rgba(255, 42, 84, 0.3)',
+                        backgroundColor: 'rgba(255, 200, 0, 0.1)',
+                        border: '1px solid rgba(255, 200, 0, 0.3)',
                         borderRadius: '12px',
                         padding: '12px 16px',
-                        color: '#FF2A54',
-                        marginBottom: '16px'
+                        color: '#f1c40f',
+                        marginBottom: '16px',
+                        fontSize: '14px'
                     }}>
                         {error}
                     </div>

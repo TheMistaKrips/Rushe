@@ -5,12 +5,23 @@ import { useStore } from '../store/useStore';
 
 const JAMENDO_CLIENT_ID = '9970bd20';
 
+// Запасные треки для поиска
+const FALLBACK_SEARCH_RESULTS = [
+    { id: 'fb1', title: 'Midnight City', artist: 'M83', time: '4:03', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+    { id: 'fb2', title: 'Starboy', artist: 'The Weeknd', time: '3:50', cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
+    { id: 'fb3', title: 'Blinding Lights', artist: 'The Weeknd', time: '3:20', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+    { id: 'fb4', title: 'Believer', artist: 'Imagine Dragons', time: '3:24', cover: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
+    { id: 'fb5', title: 'Radioactive', artist: 'Imagine Dragons', time: '3:06', cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
+    { id: 'fb6', title: 'Demons', artist: 'Imagine Dragons', time: '2:57', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' },
+];
+
 export default function Search() {
     const { searchQuery, playTrack, currentTrack, likedTracks, toggleLike } = useStore();
     const [results, setResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [error, setError] = useState(null);
+    const [usingFallback, setUsingFallback] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -30,11 +41,13 @@ export default function Search() {
             if (!searchQuery.trim()) {
                 setResults([]);
                 setError(null);
+                setUsingFallback(false);
                 return;
             }
 
             setIsLoading(true);
             setError(null);
+            setUsingFallback(false);
 
             try {
                 const response = await fetch(
@@ -59,13 +72,16 @@ export default function Search() {
                     }));
                     setResults(formattedResults);
                 } else {
-                    setResults([]);
-                    setError('По вашему запросу ничего не найдено');
+                    // Если ничего не найдено, показываем fallback треки
+                    setUsingFallback(true);
+                    setResults(FALLBACK_SEARCH_RESULTS);
+                    setError(`По запросу "${searchQuery}" ничего не найдено. Показываем демо-треки.`);
                 }
             } catch (err) {
                 console.error("Ошибка поиска:", err);
-                setError('Не удалось загрузить треки. Проверьте подключение к интернету.');
-                setResults([]);
+                setUsingFallback(true);
+                setResults(FALLBACK_SEARCH_RESULTS);
+                setError('Не удалось подключиться к серверу. Показываем демо-треки.');
             } finally {
                 setIsLoading(false);
             }
@@ -93,15 +109,16 @@ export default function Search() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', height: '100%', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, display: isMobile ? 'none' : 'block' }}>
                 Результаты поиска
+                {usingFallback && <span style={{ fontSize: '14px', color: '#f1c40f', marginLeft: '10px' }}>(демо)</span>}
             </h2>
 
             {error && (
                 <div style={{
-                    backgroundColor: 'rgba(255, 42, 84, 0.1)',
-                    border: '1px solid rgba(255, 42, 84, 0.3)',
+                    backgroundColor: 'rgba(255, 200, 0, 0.1)',
+                    border: '1px solid rgba(255, 200, 0, 0.3)',
                     borderRadius: '12px',
                     padding: '12px 16px',
-                    color: '#FF2A54',
+                    color: '#f1c40f',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
@@ -133,7 +150,7 @@ export default function Search() {
 
                         return (
                             <motion.div
-                                key={track.id}
+                                key={track.id + '_' + index}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}

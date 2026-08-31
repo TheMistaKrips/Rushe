@@ -24,11 +24,14 @@ export const useStore = create(
             isPlaying: false,
             volume: 0.8,
 
-            playTrack: (track, queue = []) => set({
-                currentTrack: track,
-                queue: queue.length > 0 ? queue : [track],
-                isPlaying: true
-            }),
+            playTrack: (track, queue = []) => {
+                console.log('Playing track:', track);
+                set({
+                    currentTrack: track,
+                    queue: queue.length > 0 ? queue : [track],
+                    isPlaying: true
+                });
+            },
 
             setIsPlaying: (isPlaying) => set({ isPlaying }),
             setVolume: (volume) => set({ volume }),
