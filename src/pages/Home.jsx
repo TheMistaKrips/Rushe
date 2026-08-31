@@ -308,21 +308,6 @@ export default function Home() {
                         </motion.div>
                     )}
 
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '12px',
-                        right: '20px',
-                        fontSize: '10px',
-                        color: 'rgba(255,255,255,0.4)',
-                        zIndex: 2,
-                        letterSpacing: '0.5px',
-                        backgroundColor: 'rgba(0,0,0,0.15)',
-                        padding: '4px 12px',
-                        borderRadius: '12px',
-                        backdropFilter: 'blur(10px)'
-                    }}>
-                        {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Рекомендуемые треки'}
-                    </div>
                 </div>
             </motion.div>
 
