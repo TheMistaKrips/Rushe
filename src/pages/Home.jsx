@@ -206,7 +206,7 @@ export default function Home() {
                             animationData={lottieData}
                             loop={true}
                             autoplay={true}
-                            style={{ width: '100%', height: '100%' }}
+                            style={{ width: '10%', height: '10%' }}
                         />
                     </div>
                 )}
