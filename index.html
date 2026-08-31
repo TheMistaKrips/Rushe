@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/rushe_logo_colored.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>RushE - Music Streaming</title>
+    <style>
+      /* Базовый сброс стилей, чтобы inline-стили работали предсказуемо */
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #0d0d12; /* Темный фон из дизайна */
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        overflow: hidden; /* Скрываем общий скролл, скроллить будем контентную часть */
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent; /* Убираем синее выделение при клике на мобилках */
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+        display: flex;
+      }
+      
+      /* Стили для скроллбара под дизайн */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
