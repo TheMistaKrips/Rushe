@@ -68,10 +68,10 @@ export default function Liked() {
                             }}
                         >
                             <img
-                                src={track.cover || 'https://picsum.photos/seed/' + track.id + '/100/100'}
+                                src={track.cover || `https://picsum.photos/seed/${track.id}/100/100`}
                                 alt={track.title}
                                 style={{ width: '45px', height: '45px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
-                                onError={(e) => e.target.src = 'https://picsum.photos/seed/' + track.id + '/100/100'}
+                                onError={(e) => e.target.src = `https://picsum.photos/seed/${track.id}/100/100`}
                             />
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '15px', overflow: 'hidden' }}>
                                 <span style={{ fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#9B51E0' : '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>

@@ -54,7 +54,8 @@ export default function Library() {
                     backgroundColor: '#1a1a24',
                     padding: '16px',
                     borderRadius: '12px',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    flexWrap: 'wrap'
                 }}>
                     <input
                         type="text"
@@ -69,7 +70,8 @@ export default function Library() {
                             borderRadius: '8px',
                             color: '#fff',
                             fontSize: '14px',
-                            outline: 'none'
+                            outline: 'none',
+                            minWidth: '150px'
                         }}
                     />
                     <button

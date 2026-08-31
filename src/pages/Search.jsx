@@ -37,7 +37,6 @@ export default function Search() {
             setError(null);
 
             try {
-                // Поиск через Jamendo API
                 const response = await fetch(
                     `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=30&search=${encodeURIComponent(searchQuery)}&include=musicinfo`
                 );
@@ -54,7 +53,7 @@ export default function Search() {
                         title: item.name,
                         artist: item.artist_name,
                         time: formatTime(item.duration),
-                        cover: item.image || item.album_image || 'https://picsum.photos/seed/' + item.id + '/100/100',
+                        cover: item.image || item.album_image || `https://picsum.photos/seed/${item.id}/100/100`,
                         audioUrl: item.audio || `https://api.jamendo.com/v3.0/tracks/file/?client_id=${JAMENDO_CLIENT_ID}&track_id=${item.id}`,
                         duration: item.duration
                     }));
@@ -148,7 +147,7 @@ export default function Search() {
                                             alt={track.title}
                                             style={{ width: '100%', height: '100%', borderRadius: '8px', objectFit: 'cover' }}
                                             onError={(e) => {
-                                                e.target.src = 'https://picsum.photos/seed/' + track.id + '/100/100';
+                                                e.target.src = `https://picsum.photos/seed/${track.id}/100/100`;
                                             }}
                                         />
                                         {isActive && (

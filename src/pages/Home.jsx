@@ -18,7 +18,6 @@ export default function Home() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Загрузка реальных треков с Jamendo
     useEffect(() => {
         const fetchTracks = async () => {
             setIsLoading(true);
@@ -27,7 +26,6 @@ export default function Home() {
             try {
                 let url = `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=20&order=popularity_total&include=musicinfo`;
 
-                // Если есть поисковый запрос, фильтруем
                 if (searchQuery.trim()) {
                     url = `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=20&search=${encodeURIComponent(searchQuery)}&include=musicinfo`;
                 }
@@ -46,7 +44,7 @@ export default function Home() {
                         title: item.name,
                         artist: item.artist_name,
                         time: formatTime(item.duration),
-                        cover: item.image || item.album_image || 'https://picsum.photos/seed/' + item.id + '/100/100',
+                        cover: item.image || item.album_image || `https://picsum.photos/seed/${item.id}/100/100`,
                         audioUrl: item.audio || `https://api.jamendo.com/v3.0/tracks/file/?client_id=${JAMENDO_CLIENT_ID}&track_id=${item.id}`,
                         duration: item.duration
                     }));
@@ -83,7 +81,6 @@ export default function Home() {
             return;
         }
 
-        // Используем треки из лайков или рекомендуемые
         const waveQueue = likedTracks.length > 0 ? likedTracks : recommendedTracks;
         if (waveQueue.length > 0) {
             const randomTrack = waveQueue[Math.floor(Math.random() * waveQueue.length)];
@@ -189,17 +186,6 @@ export default function Home() {
                             ❤️ {likedTracks.length} треков в лайках
                         </div>
                     )}
-                    {!isPlaying && likedTracks.length === 0 && recommendedTracks.length > 0 && (
-                        <div style={{
-                            padding: '6px 16px',
-                            backgroundColor: 'rgba(255,255,255,0.1)',
-                            borderRadius: '20px',
-                            fontSize: isMobile ? '12px' : '14px',
-                            color: 'rgba(255,255,255,0.8)'
-                        }}>
-                            🎵 {recommendedTracks.length} треков доступно
-                        </div>
-                    )}
                 </div>
                 <div style={{
                     position: 'absolute',
@@ -209,11 +195,11 @@ export default function Home() {
                     color: 'rgba(255,255,255,0.4)',
                     zIndex: 1
                 }}>
-                    {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Рекомендуемые треки'}
+                    {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Популярные треки'}
                 </div>
             </motion.div>
 
-            {/* РЕКОМЕНДАЦИИ / РЕЗУЛЬТАТЫ ПОИСКА */}
+            {/* РЕКОМЕНДАЦИИ */}
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <div style={{ fontSize: '22px', fontWeight: 'bold' }}>
@@ -245,7 +231,7 @@ export default function Home() {
                         color: '#888',
                         padding: '40px 0'
                     }}>
-                        <Music size={48} color="#333" style={{ marginBottom: '16px' }} />
+                        <RefreshCw size={48} color="#333" style={{ marginBottom: '16px' }} />
                         <div>Нет доступных треков</div>
                     </div>
                 )}
@@ -290,7 +276,7 @@ export default function Home() {
                                         flexShrink: 0
                                     }}
                                     onError={(e) => {
-                                        e.target.src = 'https://picsum.photos/seed/' + track.id + '/100/100';
+                                        e.target.src = `https://picsum.photos/seed/${track.id}/100/100`;
                                     }}
                                 />
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '15px', overflow: 'hidden' }}>

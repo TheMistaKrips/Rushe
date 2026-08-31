@@ -1,63 +1,94 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useStore } from './store/useStore';
+
+import Home from './pages/Home';
+import Search from './pages/Search';
+import Library from './pages/Library';
+import Onboarding from './pages/Onboarding';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import Player from './components/Player';
-import Home from './components/Home';
-import Search from './components/Search';
-import Library from './components/Library';
-import Liked from './components/Liked';
-import Onboarding from './components/Onboarding';
 
-function App() {
-  const { hasCompletedOnboarding } = useStore();
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+// Компонент-обертка для доступа к useLocation
+function AppContent() {
+  const { hasCompletedOnboarding, currentTrack } = useStore();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const location = useLocation();
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const contentStyle = {
+  if (!hasCompletedOnboarding) {
+    return (
+      <Routes>
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="*" element={<Navigate to="/onboarding" replace />} />
+      </Routes>
+    );
+  }
+
+  const appStyle = {
+    display: 'flex',
+    flexDirection: isMobile ? 'column' : 'row',
+    height: '100vh',
+    width: '100vw',
+    backgroundColor: '#0d0d12',
+    color: '#ffffff',
+    overflow: 'hidden'
+  };
+
+  const contentContainerStyle = {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
     height: '100vh',
-    overflow: 'hidden',
-    padding: isMobile ? '0 15px 130px 15px' : '0 30px 100px 30px',
-    backgroundColor: '#0d0d12'
+    position: 'relative',
+    overflow: 'hidden'
   };
 
-  if (!hasCompletedOnboarding) {
-    return (
-      <BrowserRouter>
-        <Onboarding />
-      </BrowserRouter>
-    );
-  }
+  const mainAreaStyle = {
+    flex: 1,
+    overflowY: 'auto',
+    padding: isMobile ? '10px' : '30px',
+    paddingBottom: currentTrack ? (isMobile ? '140px' : '120px') : (isMobile ? '80px' : '30px'),
+  };
 
   return (
-    <BrowserRouter>
-      <div style={{ display: 'flex', height: '100vh', width: '100%', backgroundColor: '#0d0d12' }}>
-        <Sidebar isMobile={isMobile} />
-        <div style={contentStyle}>
-          <Topbar isMobile={isMobile} />
-          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '20px' }}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/search" element={<Search />} />
-              <Route path="/library" element={<Library />} />
-              <Route path="/liked" element={<Liked />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </div>
+    <div style={appStyle}>
+      {!isMobile && <Sidebar isMobile={false} />}
+
+      <div style={contentContainerStyle}>
+        {!(isMobile && location.pathname === '/search') && <Topbar isMobile={isMobile} />}
+
+        <div style={mainAreaStyle}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/liked" element={<Liked />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </div>
-        <Player isMobile={isMobile} />
       </div>
+
+      {currentTrack && <Player isMobile={isMobile} />}
+      {isMobile && <Sidebar isMobile={true} />}
+    </div>
+  );
+}
+
+// Главный компонент App с BrowserRouter
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 }
 
-export default App;
+// Импорт Liked компонента
+import Liked from './pages/Liked';
