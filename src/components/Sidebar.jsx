@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Search, LibraryMusic } from 'lucide-react';
+import { Home, Search, Library } from 'lucide-react';
 
 export default function Sidebar({ isMobile }) {
     // --- INLINE СТИЛИ ---
@@ -101,7 +101,7 @@ export default function Sidebar({ isMobile }) {
                 <NavLink to="/library" style={getLinkStyle}>
                     {({ isActive }) => (
                         <>
-                            <LibraryMusic size={isMobile ? 24 : 22} color={isActive ? '#9B51E0' : '#888'} />
+                            <Library size={isMobile ? 24 : 22} color={isActive ? '#9B51E0' : '#888'} />
                             <span>Медиатека</span>
                         </>
                     )}
