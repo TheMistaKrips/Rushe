@@ -1,25 +1,31 @@
 import React, { useRef, useEffect } from 'react';
-import { Play, Pause, SkipForward, Heart } from 'lucide-react';
+import { Play, Pause, SkipForward, Heart, Volume2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export default function Player({ isMobile }) {
-    const { currentTrack, isPlaying, setIsPlaying, playNext, likedTracks, toggleLike } = useStore();
+    const { currentTrack, isPlaying, setIsPlaying, playNext, likedTracks, toggleLike, volume, setVolume } = useStore();
     const audioRef = useRef(null);
 
     useEffect(() => {
         if (audioRef.current) {
+            audioRef.current.volume = volume;
             if (isPlaying) {
-                audioRef.current.play().catch(err => console.log("Playback error:", err));
+                // Безопасный запуск с перехватом блокировки браузера
+                audioRef.current.play().catch(err => {
+                    console.warn("Браузер заблокировал автоплей:", err);
+                    setIsPlaying(false);
+                });
             } else {
                 audioRef.current.pause();
             }
         }
-    }, [isPlaying, currentTrack]);
+    }, [isPlaying, currentTrack, volume]);
 
     if (!currentTrack) return null;
     const isLiked = likedTracks.some(t => t.id === currentTrack.id);
 
-    const audioSource = currentTrack.audioUrl || `https://www.freedesound.org/data/previews/612/612133_16864146-lq.mp3`;
+    // Используем гарантированно работающий публичный поток или аудио из трека
+    const audioSource = currentTrack.audioUrl || `https://commondatastorage.googleapis.com/codesign-bucket/audio/sample.mp3`;
 
     const containerStyle = isMobile ? {
         position: 'fixed',
@@ -56,6 +62,7 @@ export default function Player({ isMobile }) {
                 ref={audioRef}
                 src={audioSource}
                 onEnded={playNext}
+                onError={(e) => console.error("Ошибка аудиоэлемента:", e)}
             />
 
             <img src={currentTrack.cover} alt="Cover" style={{ width: isMobile ? '40px' : '56px', height: isMobile ? '40px' : '56px', borderRadius: isMobile ? '8px' : '12px', objectFit: 'cover' }} />
