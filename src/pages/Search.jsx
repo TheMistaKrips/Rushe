@@ -3,21 +3,6 @@ import { Play, Heart, Music } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 
-const PIPED_INSTANCES = [
-    'https://pipedapi.kavin.rocks',
-    'https://pipedapi.tokhmi.xyz',
-    'https://pipedapi.moomoo.me'
-];
-
-// Резервная база треков, которая активируется при сбое внешних API
-const LOCAL_FALLBACK_DATABASE = [
-    { id: '1', title: 'Midnight City', artist: 'M83', time: '4:03', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80', videoId: 'dX3k_LSd3YY', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
-    { id: '2', title: 'Starboy', artist: 'The Weeknd', time: '3:50', cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80', videoId: '34Na4j8HLjc', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
-    { id: '3', title: 'Blinding Lights', artist: 'The Weeknd', time: '3:20', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&q=80', videoId: '4NRXx6U8ABQ', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
-    { id: '4', title: 'Numb', artist: 'Linkin Park', time: '3:05', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&q=80', videoId: 'kXYiU_JCYtU', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
-    { id: '5', title: 'Believer', artist: 'Imagine Dragons', time: '3:24', cover: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=100&q=80', videoId: '7wtfhZwyrcc', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' }
-];
-
 export default function Search() {
     const { searchQuery, playTrack, currentTrack, likedTracks, toggleLike } = useStore();
     const [results, setResults] = useState([]);
@@ -26,7 +11,9 @@ export default function Search() {
 
     const formatTime = (seconds) => {
         if (!seconds) return '0:00';
-        return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${String(secs).padStart(2, '0')}`;
     };
 
     useEffect(() => {
@@ -37,55 +24,39 @@ export default function Search() {
             }
 
             setIsLoading(true);
-            let dataFetched = false;
 
-            // Пробуем внешние Piped API
-            for (const instance of PIPED_INSTANCES) {
-                try {
-                    const response = await fetch(`${instance}/search?q=${encodeURIComponent(searchQuery)}&filter=music_songs`, { signal: AbortSignal.timeout(3000) });
-                    if (!response.ok) continue;
+            try {
+                // Используем публичное API Jamendo для поиска реальных треков с прямой аудиоссылкой
+                const clientId = '9970bd20'; // Публичный тестовый client_id Jamendo
+                const response = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${clientId}&format=json&limit=20&search=${encodeURIComponent(searchQuery)}`);
 
-                    const data = await response.json();
-                    if (!data.items) continue;
+                if (!response.ok) throw new Error('Ошибка сети');
 
-                    const formattedResults = data.items
-                        .filter(item => item.type === 'stream')
-                        .map(item => ({
-                            id: item.url.replace('/watch?v=', ''),
-                            title: item.title,
-                            artist: item.uploaderName || 'Исполнитель',
-                            time: formatTime(item.duration),
-                            cover: item.thumbnail,
-                            videoId: item.url.replace('/watch?v=', ''),
-                            audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
-                        }));
+                const data = await response.json();
 
-                    if (formattedResults.length > 0) {
-                        setResults(formattedResults);
-                        dataFetched = true;
-                        break;
-                    }
-                } catch (err) {
-                    console.warn(`Узел ${instance} недоступен, переключаемся на локальную базу...`);
+                if (data && data.results) {
+                    const formattedResults = data.results.map(item => ({
+                        id: item.id,
+                        title: item.name,
+                        artist: item.artist_name,
+                        time: formatTime(item.duration),
+                        cover: item.image || item.album_image,
+                        videoId: item.id, // ID для плеера
+                        audioUrl: item.audio // Настоящая рабочая прямая ссылка на MP3-поток
+                    }));
+                    setResults(formattedResults);
                 }
+            } catch (err) {
+                console.error("Ошибка поиска:", err);
+                setResults([]);
+            } finally {
+                setIsLoading(false);
             }
-
-            // Если внешние API упали — ищем по локальной резервной базе
-            if (!dataFetched) {
-                const query = searchQuery.toLowerCase();
-                const filtered = LOCAL_FALLBACK_DATABASE.filter(
-                    track => track.title.toLowerCase().includes(query) || track.artist.toLowerCase().includes(query)
-                );
-                // Если по запросу ничего нет в локальной базе, показываем всю базу для удобства
-                setResults(filtered.length > 0 ? filtered : LOCAL_FALLBACK_DATABASE);
-            }
-
-            setIsLoading(false);
         };
 
         const timeoutId = setTimeout(() => {
             fetchMusic();
-        }, 400);
+        }, 500);
 
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
@@ -106,7 +77,7 @@ export default function Search() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', overflowY: 'auto', flex: 1, paddingBottom: '20px' }}>
                 {isLoading ? (
-                    <div style={{ color: '#888', textAlign: 'center', marginTop: '30px' }}>Ищем треки...</div>
+                    <div style={{ color: '#888', textAlign: 'center', marginTop: '30px' }}>Ищем музыку...</div>
                 ) : results.length > 0 ? (
                     results.map((track) => {
                         const isActive = currentTrack?.id === track.id;
@@ -139,7 +110,7 @@ export default function Search() {
                     })
                 ) : (
                     searchQuery && !isLoading && (
-                        <div style={{ textAlign: 'center', color: '#888', marginTop: '40px' }}>Ничего не найдено</div>
+                        <div style={{ textAlign: 'center', color: '#888', marginTop: '40px' }}>Ничего не найдено по запросу "{searchQuery}"</div>
                     )
                 )}
             </div>

@@ -22,8 +22,8 @@ export default function Player({ isMobile }) {
     if (!currentTrack) return null;
     const isLiked = likedTracks.some(t => t.id === currentTrack.id);
 
-    // Безопасный аудиопоток с fallback на стабильный MP3-пример
-    const audioSource = currentTrack.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    // Прямой аудиопоток выбранного трека
+    const audioSource = currentTrack.audioUrl;
 
     const containerStyle = isMobile ? {
         position: 'fixed',
@@ -60,6 +60,7 @@ export default function Player({ isMobile }) {
                 ref={audioRef}
                 src={audioSource}
                 onEnded={playNext}
+                onError={(e) => console.error("Ошибка воспроизведения аудио:", e)}
             />
 
             <img src={currentTrack.cover} alt="Cover" style={{ width: isMobile ? '40px' : '56px', height: isMobile ? '40px' : '56px', borderRadius: isMobile ? '8px' : '12px', objectFit: 'cover' }} />
