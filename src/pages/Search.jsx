@@ -2,7 +2,58 @@ import React, { useState, useEffect } from 'react';
 import { Play, Heart, Music, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
-import { searchYoutube, initializeNewPipe, extractStreamInfo, getBestAudioStream } from 'newpipe-extractor-js';
+import axios from 'axios';
+
+// Публичные Invidious инстансы
+const INVIDIOUS_INSTANCES = [
+    'https://invidious.io',
+    'https://invidious.private.coffee',
+    'https://invidious.fdn.fr',
+    'https://invidious.projectsegfau.lt',
+    'https://yewtu.be',
+    'https://inv.riverside.rocks',
+];
+
+async function searchYouTubeInvidious(query) {
+    for (const instance of INVIDIOUS_INSTANCES) {
+        try {
+            const response = await axios.get(`${instance}/api/v1/search`, {
+                params: {
+                    q: query,
+                    type: 'video',
+                    sort: 'relevance',
+                    limit: 30
+                },
+                timeout: 10000
+            });
+
+            if (response.data && response.data.length > 0) {
+                const tracks = response.data.map(item => ({
+                    id: item.videoId,
+                    title: item.title || 'Unknown',
+                    artist: item.author || 'Unknown Artist',
+                    time: formatDuration(item.lengthSeconds || 0),
+                    cover: `https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg`,
+                    audioUrl: `https://www.youtube.com/watch?v=${item.videoId}`,
+                    duration: item.lengthSeconds || 0,
+                    videoId: item.videoId
+                }));
+                return tracks;
+            }
+        } catch (err) {
+            console.warn(`Invidious instance ${instance} failed:`, err.message);
+            continue;
+        }
+    }
+    return [];
+}
+
+const formatDuration = (seconds) => {
+    if (!seconds) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+};
 
 export default function Search() {
     const { searchQuery, playTrack, currentTrack, likedTracks, toggleLike } = useStore();
@@ -17,72 +68,6 @@ export default function Search() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const formatTime = (seconds) => {
-        if (!seconds) return '0:00';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${String(secs).padStart(2, '0')}`;
-    };
-
-    // Инициализация NewPipe
-    useEffect(() => {
-        try {
-            initializeNewPipe();
-            console.log('NewPipe initialized for search');
-        } catch (err) {
-            console.error('NewPipe init error:', err);
-        }
-    }, []);
-
-    const searchYouTube = async (query) => {
-        try {
-            const searchResults = await searchYoutube(query, ['videos']);
-
-            if (searchResults && searchResults.items && searchResults.items.length > 0) {
-                const tracks = [];
-
-                for (const item of searchResults.items) {
-                    try {
-                        const videoId = item.url.split('v=')[1] || item.id;
-                        if (!videoId) continue;
-
-                        let audioUrl = null;
-                        try {
-                            const streamInfo = await extractStreamInfo(item.url);
-                            const bestAudio = getBestAudioStream(streamInfo);
-                            if (bestAudio && bestAudio.url) {
-                                audioUrl = bestAudio.url;
-                            }
-                        } catch (streamErr) {
-                            console.warn('Не удалось извлечь аудио для:', item.name);
-                        }
-
-                        if (!audioUrl) continue;
-
-                        tracks.push({
-                            id: videoId,
-                            title: item.name || 'Unknown',
-                            artist: item.uploaderName || 'Unknown Artist',
-                            time: formatTime(item.duration || 0),
-                            cover: item.thumbnail || `https://picsum.photos/seed/${videoId}/100/100`,
-                            audioUrl: audioUrl,
-                            duration: item.duration || 0,
-                            videoId: videoId
-                        });
-                    } catch (itemErr) {
-                        console.warn('Ошибка обработки трека:', itemErr);
-                    }
-                }
-
-                return tracks;
-            }
-            return [];
-        } catch (err) {
-            console.error('YouTube search error:', err);
-            return [];
-        }
-    };
-
     useEffect(() => {
         const fetchMusic = async () => {
             if (!searchQuery.trim()) {
@@ -95,7 +80,7 @@ export default function Search() {
             setError(null);
 
             try {
-                const tracks = await searchYouTube(searchQuery);
+                const tracks = await searchYouTubeInvidious(searchQuery);
 
                 if (tracks && tracks.length > 0) {
                     setResults(tracks);

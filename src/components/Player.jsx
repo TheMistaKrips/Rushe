@@ -2,14 +2,73 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Play, Pause, SkipForward, Heart, Volume2, VolumeX } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
+// Функция для извлечения аудио из YouTube видео
+async function getYouTubeAudio(videoId) {
+    // Используем yt-dlp proxy сервисы
+    const services = [
+        `https://api.vevioz.com/api/button/mp3/${videoId}`,
+        `https://yt-api.com/api/stream/${videoId}`,
+        `https://api.audio-download.com/api/youtube/${videoId}`,
+    ];
+
+    for (const service of services) {
+        try {
+            const response = await fetch(service);
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.url) {
+                    return data.url;
+                }
+            }
+        } catch (err) {
+            console.warn('Service failed:', service);
+        }
+    }
+    return null;
+}
+
 export default function Player({ isMobile }) {
     const { currentTrack, isPlaying, setIsPlaying, playNext, likedTracks, toggleLike, volume, setVolume } = useStore();
     const audioRef = useRef(null);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [audioUrl, setAudioUrl] = useState(null);
+    const [loadingAudio, setLoadingAudio] = useState(false);
+
+    // Получаем аудио URL для YouTube видео
+    useEffect(() => {
+        const fetchAudio = async () => {
+            if (!currentTrack) return;
+
+            // Если это не YouTube ссылка (демо треки), используем прямой URL
+            if (!currentTrack.audioUrl?.includes('youtube.com/watch')) {
+                setAudioUrl(currentTrack.audioUrl);
+                return;
+            }
+
+            setLoadingAudio(true);
+            try {
+                const videoId = currentTrack.id;
+                const url = await getYouTubeAudio(videoId);
+                if (url) {
+                    setAudioUrl(url);
+                } else {
+                    console.error('Не удалось получить аудио для:', currentTrack.title);
+                    setAudioUrl(null);
+                }
+            } catch (err) {
+                console.error('Ошибка получения аудио:', err);
+                setAudioUrl(null);
+            } finally {
+                setLoadingAudio(false);
+            }
+        };
+
+        fetchAudio();
+    }, [currentTrack]);
 
     useEffect(() => {
-        if (audioRef.current) {
+        if (audioRef.current && audioUrl) {
             audioRef.current.volume = volume;
             if (isPlaying) {
                 audioRef.current.play().catch((err) => {
@@ -20,7 +79,7 @@ export default function Player({ isMobile }) {
                 audioRef.current.pause();
             }
         }
-    }, [isPlaying, currentTrack, volume]);
+    }, [isPlaying, audioUrl, volume]);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -52,7 +111,7 @@ export default function Player({ isMobile }) {
                 audio.removeEventListener('error', handleError);
             };
         }
-    }, [currentTrack, playNext, setIsPlaying]);
+    }, [audioUrl, playNext, setIsPlaying]);
 
     const formatTime = (seconds) => {
         if (!seconds || isNaN(seconds)) return '0:00';
@@ -106,7 +165,7 @@ export default function Player({ isMobile }) {
         <div style={containerStyle}>
             <audio
                 ref={audioRef}
-                src={currentTrack.audioUrl}
+                src={audioUrl || ''}
                 preload="metadata"
             />
 
@@ -128,6 +187,7 @@ export default function Player({ isMobile }) {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '12px', overflow: 'hidden', minWidth: 0 }}>
                 <span style={{ fontWeight: 'bold', fontSize: isMobile ? '14px' : '15px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                     {currentTrack.title}
+                    {loadingAudio && <span style={{ fontSize: '11px', color: '#888', marginLeft: '8px' }}>⏳ загрузка...</span>}
                 </span>
                 <span style={{ fontSize: isMobile ? '12px' : '13px', color: '#888', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                     {currentTrack.artist}
@@ -153,6 +213,7 @@ export default function Player({ isMobile }) {
                 <button
                     onClick={() => setIsPlaying(!isPlaying)}
                     style={{ background: 'none', border: 'none', padding: '5px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                    disabled={loadingAudio || !audioUrl}
                 >
                     {isPlaying ? <Pause size={isMobile ? 24 : 28} fill="#fff" color="#fff" /> : <Play size={isMobile ? 24 : 28} fill="#fff" color="#fff" />}
                 </button>

@@ -2,13 +2,87 @@ import React, { useState, useEffect } from 'react';
 import { Play, Heart, Pause, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
-import { searchYoutube, initializeNewPipe, extractStreamInfo, getBestAudioStream } from 'newpipe-extractor-js';
+import axios from 'axios';
 
 // Демо-треки на случай полного отказа
 const DEMO_TRACKS = [
     { id: 'demo1', title: 'Sample Track 1', artist: 'Demo Artist', time: '3:00', cover: 'https://picsum.photos/seed/1/100/100', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
     { id: 'demo2', title: 'Sample Track 2', artist: 'Demo Artist', time: '3:30', cover: 'https://picsum.photos/seed/2/100/100', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
 ];
+
+// Публичные Invidious инстансы
+const INVIDIOUS_INSTANCES = [
+    'https://invidious.io',
+    'https://invidious.private.coffee',
+    'https://invidious.fdn.fr',
+    'https://invidious.projectsegfau.lt',
+    'https://yewtu.be',
+    'https://inv.riverside.rocks',
+];
+
+// Функция для поиска через Invidious API
+async function searchYouTubeInvidious(query) {
+    // Пробуем разные инстансы
+    for (const instance of INVIDIOUS_INSTANCES) {
+        try {
+            const response = await axios.get(`${instance}/api/v1/search`, {
+                params: {
+                    q: query,
+                    type: 'video',
+                    sort: 'relevance',
+                    limit: 20
+                },
+                timeout: 10000
+            });
+
+            if (response.data && response.data.length > 0) {
+                const tracks = response.data.map(item => ({
+                    id: item.videoId,
+                    title: item.title || 'Unknown',
+                    artist: item.author || 'Unknown Artist',
+                    time: formatDuration(item.lengthSeconds || 0),
+                    cover: `https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg`,
+                    audioUrl: `https://www.youtube.com/watch?v=${item.videoId}`,
+                    duration: item.lengthSeconds || 0,
+                    videoId: item.videoId
+                }));
+                return tracks;
+            }
+        } catch (err) {
+            console.warn(`Invidious instance ${instance} failed:`, err.message);
+            continue;
+        }
+    }
+    return [];
+}
+
+// Функция для получения аудио через yt-dlp proxy (альтернативный метод)
+async function getAudioWithProxy(videoId) {
+    // Используем публичный API для конвертации
+    const proxies = [
+        `https://api.vevioz.com/api/button/mp3/${videoId}`,
+        `https://yt-api.com/api/stream/${videoId}`,
+    ];
+
+    for (const proxy of proxies) {
+        try {
+            const response = await axios.get(proxy, { timeout: 8000 });
+            if (response.data && response.data.url) {
+                return response.data.url;
+            }
+        } catch (err) {
+            continue;
+        }
+    }
+    return null;
+}
+
+const formatDuration = (seconds) => {
+    if (!seconds) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+};
 
 export default function Home() {
     const { playTrack, currentTrack, isPlaying, setIsPlaying, likedTracks, toggleLike, searchQuery } = useStore();
@@ -23,77 +97,6 @@ export default function Home() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const formatTime = (seconds) => {
-        if (!seconds) return '0:00';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${String(secs).padStart(2, '0')}`;
-    };
-
-    // Инициализация NewPipe
-    useEffect(() => {
-        try {
-            initializeNewPipe();
-            console.log('NewPipe initialized');
-        } catch (err) {
-            console.error('NewPipe init error:', err);
-        }
-    }, []);
-
-    // Поиск треков через YouTube
-    const searchYouTubeTracks = async (query) => {
-        try {
-            const searchResults = await searchYoutube(query, ['videos']);
-
-            if (searchResults && searchResults.items && searchResults.items.length > 0) {
-                const tracks = [];
-
-                for (const item of searchResults.items) {
-                    try {
-                        const videoId = item.url.split('v=')[1] || item.id;
-
-                        // Пропускаем, если нет ID
-                        if (!videoId) continue;
-
-                        // Пытаемся получить аудио поток
-                        let audioUrl = null;
-                        try {
-                            const streamInfo = await extractStreamInfo(item.url);
-                            const bestAudio = getBestAudioStream(streamInfo);
-                            if (bestAudio && bestAudio.url) {
-                                audioUrl = bestAudio.url;
-                            }
-                        } catch (streamErr) {
-                            console.warn('Не удалось извлечь аудио для:', item.name);
-                        }
-
-                        // Если не удалось получить аудио, пропускаем
-                        if (!audioUrl) continue;
-
-                        tracks.push({
-                            id: videoId,
-                            title: item.name || 'Unknown',
-                            artist: item.uploaderName || 'Unknown Artist',
-                            time: formatTime(item.duration || 0),
-                            cover: item.thumbnail || `https://picsum.photos/seed/${videoId}/100/100`,
-                            audioUrl: audioUrl,
-                            duration: item.duration || 0,
-                            videoId: videoId
-                        });
-                    } catch (itemErr) {
-                        console.warn('Ошибка обработки трека:', itemErr);
-                    }
-                }
-
-                return tracks;
-            }
-            return [];
-        } catch (err) {
-            console.error('YouTube search error:', err);
-            return [];
-        }
-    };
-
     useEffect(() => {
         const fetchTracks = async () => {
             setIsLoading(true);
@@ -101,12 +104,11 @@ export default function Home() {
 
             try {
                 const query = searchQuery.trim() || 'popular music';
-                const tracks = await searchYouTubeTracks(query);
+                const tracks = await searchYouTubeInvidious(query);
 
                 if (tracks && tracks.length > 0) {
                     setRecommendedTracks(tracks);
                 } else {
-                    // Если ничего не найдено, показываем демо-треки
                     setRecommendedTracks(DEMO_TRACKS);
                     if (searchQuery.trim()) {
                         setError(`По запросу "${searchQuery}" ничего не найдено. Показываем демо-треки.`);
@@ -121,7 +123,7 @@ export default function Home() {
             }
         };
 
-        const timeoutId = setTimeout(fetchTracks, 500);
+        const timeoutId = setTimeout(fetchTracks, 300);
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
 
@@ -153,7 +155,7 @@ export default function Home() {
                     <div style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
                         <RefreshCw size={32} color="#9B51E0" />
                     </div>
-                    <div style={{ marginTop: '12px' }}>Загрузка музыки с YouTube...</div>
+                    <div style={{ marginTop: '12px' }}>Загрузка музыки...</div>
                     <style>{`
                         @keyframes spin {
                             0% { transform: rotate(0deg); }
@@ -167,7 +169,6 @@ export default function Home() {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', height: '100%', width: '100%' }}>
-            {/* МОЯ ВОЛНА */}
             <motion.div
                 onClick={handleMyWavePlay}
                 animate={{
@@ -249,7 +250,6 @@ export default function Home() {
                 </div>
             </motion.div>
 
-            {/* РЕКОМЕНДАЦИИ */}
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <div style={{ fontSize: '22px', fontWeight: 'bold' }}>
