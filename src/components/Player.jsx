@@ -1,31 +1,30 @@
-import React, { useState, useRef, useEffect } from 'react';
-import ReactPlayer from 'react-player';
+import React, { useRef, useEffect } from 'react';
 import { Play, Pause, SkipNext, Heart } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export default function Player({ isMobile }) {
     const { currentTrack, isPlaying, setIsPlaying, playNext, likedTracks, toggleLike } = useStore();
-    const playerRef = useRef(null);
-
-    // Безопасный URL для предотвращения AbortError при быстрых переключениях
-    const [safeUrl, setSafeUrl] = useState('');
+    const audioRef = useRef(null);
 
     useEffect(() => {
-        if (currentTrack) {
-            setSafeUrl(''); // Сбрасываем URL
-            const timer = setTimeout(() => {
-                setSafeUrl(`https://www.youtube.com/watch?v=${currentTrack.videoId}`);
-            }, 100); // Крошечная задержка очищает поток плеера
-            return () => clearTimeout(timer);
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.play().catch(err => console.log("Playback error:", err));
+            } else {
+                audioRef.current.pause();
+            }
         }
-    }, [currentTrack]);
+    }, [isPlaying, currentTrack]);
 
     if (!currentTrack) return null;
     const isLiked = likedTracks.some(t => t.id === currentTrack.id);
 
+    // Ссылка на аудиопоток (используем прямой стрим или тестовый аудиофайл, если videoId не прямая ссылка)
+    const audioSource = currentTrack.audioUrl || `https://www.freedesound.org/data/previews/612/612133_16864146-lq.mp3`;
+
     const containerStyle = isMobile ? {
         position: 'fixed',
-        bottom: '75px', // Висит ровно над нижним меню (70px)
+        bottom: '75px',
         left: '10px',
         right: '10px',
         height: '56px',
@@ -54,18 +53,11 @@ export default function Player({ isMobile }) {
 
     return (
         <div style={containerStyle}>
-            <div style={{ display: 'none' }}>
-                {safeUrl && (
-                    <ReactPlayer
-                        ref={playerRef}
-                        url={safeUrl}
-                        playing={isPlaying}
-                        onEnded={playNext}
-                        width="0" height="0"
-                        config={{ youtube: { playerVars: { autoplay: 1, controls: 0 } } }}
-                    />
-                )}
-            </div>
+            <audio
+                ref={audioRef}
+                src={audioSource}
+                onEnded={playNext}
+            />
 
             <img src={currentTrack.cover} alt="Cover" style={{ width: isMobile ? '40px' : '56px', height: isMobile ? '40px' : '56px', borderRadius: isMobile ? '8px' : '12px', objectFit: 'cover' }} />
 
@@ -79,13 +71,13 @@ export default function Player({ isMobile }) {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '20px' }}>
-                <button onClick={() => toggleLike(currentTrack)} style={{ background: 'none', border: 'none', padding: '5px' }}>
+                <button onClick={() => toggleLike(currentTrack)} style={{ background: 'none', border: 'none', padding: '5px', cursor: 'pointer' }}>
                     <Heart size={20} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#fff'} />
                 </button>
-                <button onClick={() => setIsPlaying(!isPlaying)} style={{ background: 'none', border: 'none', padding: '5px', display: 'flex', alignItems: 'center' }}>
+                <button onClick={() => setIsPlaying(!isPlaying)} style={{ background: 'none', border: 'none', padding: '5px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                     {isPlaying ? <Pause size={isMobile ? 24 : 28} fill="#fff" color="#fff" /> : <Play size={isMobile ? 24 : 28} fill="#fff" color="#fff" />}
                 </button>
-                <button onClick={playNext} style={{ background: 'none', border: 'none', padding: '5px', display: 'flex', alignItems: 'center' }}>
+                <button onClick={playNext} style={{ background: 'none', border: 'none', padding: '5px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                     <SkipNext size={isMobile ? 24 : 28} fill="#fff" color="#fff" />
                 </button>
             </div>
