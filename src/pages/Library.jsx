@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactPlayer from 'react-player';
+import { Heart, Plus, Trash2, Music } from 'lucide-react';
 import { Play, Pause, SkipNext, Heart } from 'lucide-react';
 import { useStore } from '../store/useStore';
 

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Play, Pause, SkipNext, Heart } from 'lucide-react';
+import { Play, Pause, SkipForward, Heart } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export default function Player({ isMobile }) {
@@ -19,7 +19,6 @@ export default function Player({ isMobile }) {
     if (!currentTrack) return null;
     const isLiked = likedTracks.some(t => t.id === currentTrack.id);
 
-    // Ссылка на аудиопоток (используем прямой стрим или тестовый аудиофайл, если videoId не прямая ссылка)
     const audioSource = currentTrack.audioUrl || `https://www.freedesound.org/data/previews/612/612133_16864146-lq.mp3`;
 
     const containerStyle = isMobile ? {
@@ -78,7 +77,7 @@ export default function Player({ isMobile }) {
                     {isPlaying ? <Pause size={isMobile ? 24 : 28} fill="#fff" color="#fff" /> : <Play size={isMobile ? 24 : 28} fill="#fff" color="#fff" />}
                 </button>
                 <button onClick={playNext} style={{ background: 'none', border: 'none', padding: '5px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                    <SkipNext size={isMobile ? 24 : 28} fill="#fff" color="#fff" />
+                    <SkipForward size={isMobile ? 24 : 28} fill="#fff" color="#fff" />
                 </button>
             </div>
         </div>
