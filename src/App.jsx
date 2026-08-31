@@ -81,6 +81,7 @@ function AppContent() {
   );
 }
 
+// BrowserRouter ТОЛЬКО ЗДЕСЬ - один раз!
 export default function App() {
   return (
     <BrowserRouter>
