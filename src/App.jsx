@@ -10,7 +10,6 @@ import Liked from './pages/Liked';
 import PlaylistDetail from './pages/PlaylistDetail';
 import Onboarding from './pages/Onboarding';
 import Settings from './pages/Settings';
-import WidgetRouter from './pages/WidgetRouter';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import UnifiedPlayer from './components/UnifiedPlayer';
@@ -26,8 +25,6 @@ function AppContent() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isWidget = location.pathname.startsWith('/widget');
-
   if (!hasCompletedOnboarding) {
     return (
       <Routes>
@@ -35,10 +32,6 @@ function AppContent() {
         <Route path="*" element={<Navigate to="/onboarding" replace />} />
       </Routes>
     );
-  }
-
-  if (isWidget) {
-    return <WidgetRouter />;
   }
 
   const appStyle = {
@@ -90,7 +83,7 @@ function AppContent() {
         </div>
       </div>
 
-      {currentTrack && <UnifiedPlayer isWidget={false} />}
+      {currentTrack && <UnifiedPlayer />}
       {isMobile && <Sidebar isMobile={true} />}
     </div>
   );

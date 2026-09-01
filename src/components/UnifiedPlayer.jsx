@@ -2,16 +2,12 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import YouTube from 'react-youtube';
 import {
     Play, Pause, SkipForward, Heart, Volume2, VolumeX,
-    Maximize2, Minimize2, ListMusic, Check, X, ExternalLink
+    Maximize2, Minimize2, ListMusic, Check, X
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion } from 'framer-motion';
 
-const isElectron = () => {
-    return window.electronAPI && window.electronAPI.isElectron === true;
-};
-
-export default function UnifiedPlayer({ isWidget = false }) {
+export default function UnifiedPlayer() {
     const {
         currentTrack, isPlaying, setIsPlaying, playNext,
         likedTracks, toggleLike, volume, setVolume,
@@ -26,8 +22,6 @@ export default function UnifiedPlayer({ isWidget = false }) {
     const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const progressRef = useRef(null);
-    const isInternalUpdate = useRef(false);
-    const isInitialized = useRef(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -41,10 +35,8 @@ export default function UnifiedPlayer({ isWidget = false }) {
         setIsReady(true);
         playerInstance.setVolume(volume * 100);
 
-        // Восстанавливаем позицию из store
-        if (currentTime > 0 && !isInitialized.current) {
+        if (currentTime > 0) {
             playerInstance.seekTo(currentTime, true);
-            isInitialized.current = true;
         }
 
         if (isPlaying) {
@@ -63,9 +55,9 @@ export default function UnifiedPlayer({ isWidget = false }) {
         }
     }, [setIsPlaying, updateTime, playNext]);
 
-    // Обновление времени в store
+    // Обновление времени
     useEffect(() => {
-        if (player && isReady && isPlaying && !isInternalUpdate.current) {
+        if (player && isReady && isPlaying) {
             const interval = setInterval(() => {
                 try {
                     const time = player.getCurrentTime();
@@ -76,20 +68,6 @@ export default function UnifiedPlayer({ isWidget = false }) {
             return () => clearInterval(interval);
         }
     }, [player, isReady, isPlaying, updateTime]);
-
-    // Синхронизация с store (при изменении времени из другой вкладки)
-    useEffect(() => {
-        if (player && isReady && currentTrack && !isInternalUpdate.current) {
-            const currentPlayerTime = player.getCurrentTime();
-            if (Math.abs(currentPlayerTime - currentTime) > 0.01) {
-                isInternalUpdate.current = true;
-                player.seekTo(currentTime, true);
-                setTimeout(() => {
-                    isInternalUpdate.current = false;
-                }, 200);
-            }
-        }
-    }, [currentTime, player, isReady, currentTrack]);
 
     // Управление плеером
     useEffect(() => {
@@ -111,15 +89,11 @@ export default function UnifiedPlayer({ isWidget = false }) {
     const handleProgressClick = useCallback((e) => {
         if (!player || !isReady || !duration) return;
         try {
-            isInternalUpdate.current = true;
             const rect = e.currentTarget.getBoundingClientRect();
             const x = (e.clientX - rect.left) / rect.width;
             const newTime = x * duration;
             player.seekTo(newTime, true);
             updateTime(newTime, duration);
-            setTimeout(() => {
-                isInternalUpdate.current = false;
-            }, 200);
         } catch (err) { }
     }, [player, isReady, duration, updateTime]);
 
@@ -139,24 +113,6 @@ export default function UnifiedPlayer({ isWidget = false }) {
             setShowPlaylistMenu(false);
         }
     }, [currentTrack, addTrackToPlaylist]);
-
-    const openMiniPlayerWidget = () => {
-        const url = `/widget/miniplayer?time=${currentTime}&trackId=${currentTrack?.id}`;
-        if (isElectron()) {
-            window.electronAPI.openWidget('miniplayer');
-        } else {
-            window.open(url, '_blank', 'width=420,height=220,menubar=no,toolbar=no,location=no,status=no');
-        }
-    };
-
-    const openFullscreenWidget = () => {
-        const url = `/widget/fullscreenplayer?time=${currentTime}&trackId=${currentTrack?.id}`;
-        if (isElectron()) {
-            window.electronAPI.openWidget('fullscreenplayer');
-        } else {
-            window.open(url, '_blank', 'width=500,height=700,menubar=no,toolbar=no,location=no,status=no');
-        }
-    };
 
     const formatTime = (seconds) => {
         if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '0:00';
@@ -190,184 +146,7 @@ export default function UnifiedPlayer({ isWidget = false }) {
         },
     };
 
-    // ============================================
-    // СТИЛИ ДЛЯ ВИДЖЕТА (МИНИ-ПЛЕЕР)
-    // ============================================
-    if (isWidget) {
-        return (
-            <div style={{
-                width: '100vw',
-                height: '100vh',
-                backgroundColor: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '16px'
-            }}>
-                {videoId && (
-                    <YouTube
-                        videoId={videoId}
-                        opts={opts}
-                        onReady={onReady}
-                        onStateChange={onStateChange}
-                        style={{ display: 'none' }}
-                    />
-                )}
-
-                <div style={{
-                    width: '100%',
-                    maxWidth: '400px',
-                    backgroundColor: 'rgba(20, 20, 30, 0.95)',
-                    backdropFilter: 'blur(20px)',
-                    borderRadius: '20px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    padding: '16px 20px',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <img
-                            src={currentTrack.cover || `https://picsum.photos/seed/${currentTrack.id}/100/100`}
-                            alt="Cover"
-                            style={{
-                                width: '48px',
-                                height: '48px',
-                                borderRadius: '10px',
-                                objectFit: 'cover'
-                            }}
-                            onError={(e) => {
-                                e.target.src = `https://picsum.photos/seed/${currentTrack.id}/100/100`;
-                            }}
-                        />
-                        <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <div style={{
-                                fontWeight: 'bold',
-                                fontSize: '14px',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                            }}>
-                                {currentTrack.title}
-                            </div>
-                            <div style={{
-                                fontSize: '12px',
-                                color: '#888',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                            }}>
-                                {currentTrack.artist}
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => toggleLike(currentTrack)}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '4px'
-                            }}
-                        >
-                            <Heart size={18} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#888'} />
-                        </button>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '10px', color: '#666' }}>{formatTime(currentTime)}</span>
-                        <div style={{
-                            flex: 1,
-                            height: '3px',
-                            backgroundColor: '#2a2a35',
-                            borderRadius: '2px',
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{
-                                width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
-                                height: '100%',
-                                backgroundColor: '#9B51E0',
-                                borderRadius: '2px'
-                            }} />
-                        </div>
-                        <span style={{ fontSize: '10px', color: '#666' }}>{formatTime(duration)}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-                        <button
-                            onClick={() => setIsPlaying(!isPlaying)}
-                            style={{
-                                width: '40px',
-                                height: '40px',
-                                borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #9B51E0, #4A00E0)',
-                                border: 'none',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                opacity: !videoId ? 0.5 : 1
-                            }}
-                            disabled={!videoId}
-                        >
-                            {isPlaying ? <Pause size={20} fill="#fff" color="#fff" /> : <Play size={20} fill="#fff" color="#fff" />}
-                        </button>
-
-                        <button
-                            onClick={playNext}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '4px'
-                            }}
-                        >
-                            <SkipForward size={18} fill="#fff" color="#fff" />
-                        </button>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <button
-                                onClick={() => setVolume(volume > 0 ? 0 : 0.8)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-                            >
-                                {volume > 0 ? <Volume2 size={16} color="#888" /> : <VolumeX size={16} color="#888" />}
-                            </button>
-                            <input
-                                type="range"
-                                min="0"
-                                max="1"
-                                step="0.01"
-                                value={volume}
-                                onChange={handleVolumeChange}
-                                style={{
-                                    width: '60px',
-                                    height: '3px',
-                                    WebkitAppearance: 'none',
-                                    backgroundColor: '#2a2a35',
-                                    borderRadius: '2px',
-                                    outline: 'none'
-                                }}
-                            />
-                            <style>{`
-                                input[type="range"]::-webkit-slider-thumb {
-                                    -webkit-appearance: none;
-                                    width: 12px;
-                                    height: 12px;
-                                    border-radius: 50%;
-                                    background: #9B51E0;
-                                    cursor: pointer;
-                                }
-                            `}</style>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // ============================================
-    // ОСНОВНОЙ ПЛЕЕР
-    // ============================================
+    // Стили для мини-плеера
     const miniStyle = isMobile ? {
         position: 'fixed',
         bottom: '86px',
@@ -402,6 +181,7 @@ export default function UnifiedPlayer({ isWidget = false }) {
         boxShadow: '0 10px 40px rgba(0,0,0,0.4)'
     };
 
+    // Полноэкранный режим
     if (isFullscreenPlayerOpen) {
         return (
             <motion.div
@@ -449,34 +229,11 @@ export default function UnifiedPlayer({ isWidget = false }) {
                         color: '#fff',
                         transition: 'all 0.3s'
                     }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                 >
                     <Minimize2 size={24} />
                 </button>
-
-                {isElectron() && (
-                    <button
-                        onClick={openFullscreenWidget}
-                        style={{
-                            position: 'absolute',
-                            top: isMobile ? '20px' : '30px',
-                            left: isMobile ? '20px' : '30px',
-                            background: 'rgba(255,255,255,0.1)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '44px',
-                            height: '44px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            color: '#fff',
-                            transition: 'all 0.3s'
-                        }}
-                        title="Открыть в отдельном окне"
-                    >
-                        <ExternalLink size={24} />
-                    </button>
-                )}
 
                 <div style={{
                     width: isMobile ? '100%' : '500px',
@@ -491,12 +248,17 @@ export default function UnifiedPlayer({ isWidget = false }) {
                         height: isMobile ? '280px' : '380px',
                         borderRadius: '24px',
                         overflow: 'hidden',
-                        boxShadow: '0 30px 80px rgba(155, 81, 224, 0.3)'
+                        boxShadow: '0 30px 80px rgba(155, 81, 224, 0.3)',
+                        position: 'relative'
                     }}>
                         <img
                             src={currentTrack.cover || `https://picsum.photos/seed/${currentTrack.id}/400/400`}
                             alt="Cover"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                            }}
                             onError={(e) => {
                                 e.target.src = `https://picsum.photos/seed/${currentTrack.id}/400/400`;
                             }}
@@ -524,14 +286,16 @@ export default function UnifiedPlayer({ isWidget = false }) {
                                     backgroundColor: '#2a2a35',
                                     borderRadius: '2px',
                                     overflow: 'hidden',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    position: 'relative'
                                 }}
                             >
                                 <div style={{
                                     width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
                                     height: '100%',
                                     backgroundColor: '#9B51E0',
-                                    borderRadius: '2px'
+                                    borderRadius: '2px',
+                                    transition: 'width 0.1s linear'
                                 }} />
                             </div>
                             <span style={{ fontSize: '12px', color: '#666' }}>{formatTime(duration)}</span>
@@ -673,6 +437,7 @@ export default function UnifiedPlayer({ isWidget = false }) {
         );
     }
 
+    // Мини-плеер
     return (
         <motion.div
             initial={{ y: 100, opacity: 0 }}
@@ -748,14 +513,16 @@ export default function UnifiedPlayer({ isWidget = false }) {
                                 backgroundColor: '#2a2a35',
                                 borderRadius: '2px',
                                 overflow: 'hidden',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                position: 'relative'
                             }}
                         >
                             <div style={{
                                 width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
                                 height: '100%',
                                 backgroundColor: '#9B51E0',
-                                borderRadius: '2px'
+                                borderRadius: '2px',
+                                transition: 'width 0.1s linear'
                             }} />
                         </div>
                         <span style={{ fontSize: '10px', color: '#666' }}>{formatTime(duration)}</span>
@@ -843,23 +610,6 @@ export default function UnifiedPlayer({ isWidget = false }) {
                 >
                     <SkipForward size={isMobile ? 18 : 22} fill="#fff" color="#fff" />
                 </button>
-
-                <button
-                    onClick={openMiniPlayerWidget}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: '4px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        color: '#888'
-                    }}
-                    title={isElectron() ? "Открыть в отдельном окне" : "Открыть в новом окне"}
-                >
-                    <ExternalLink size={isMobile ? 16 : 20} />
-                </button>
-
                 <button
                     onClick={toggleFullscreenPlayer}
                     style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}
