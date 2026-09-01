@@ -208,46 +208,48 @@ export default function FullscreenPlayerWidget() {
                     </div>
 
                     {/* Громкость */}
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        width: '100%',
-                        maxWidth: '300px'
-                    }}>
-                        <button
-                            onClick={() => setVolume(volume > 0 ? 0 : 0.8)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888' }}
-                        >
-                            {volume > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
-                        </button>
-                        <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={volume}
-                            onChange={(e) => setVolume(parseFloat(e.target.value))}
-                            style={{
-                                flex: 1,
-                                height: '4px',
-                                WebkitAppearance: 'none',
-                                backgroundColor: '#2a2a35',
-                                borderRadius: '2px',
-                                outline: 'none'
-                            }}
-                        />
-                        <style>{`
-                            input[type="range"]::-webkit-slider-thumb {
-                                -webkit-appearance: none;
-                                width: 16px;
-                                height: 16px;
-                                border-radius: 50%;
-                                background: #9B51E0;
-                                cursor: pointer;
-                            }
-                        `}</style>
-                    </div>
+                    {!isMobile && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            width: '100%',
+                            maxWidth: '300px'
+                        }}>
+                            <button
+                                onClick={() => setVolume(volume > 0 ? 0 : 0.8)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888' }}
+                            >
+                                {volume > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                            </button>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                value={volume}
+                                onChange={(e) => setVolume(parseFloat(e.target.value))}
+                                style={{
+                                    flex: 1,
+                                    height: '4px',
+                                    WebkitAppearance: 'none',
+                                    backgroundColor: '#2a2a35',
+                                    borderRadius: '2px',
+                                    outline: 'none'
+                                }}
+                            />
+                            <style>{`
+                                input[type="range"]::-webkit-slider-thumb {
+                                    -webkit-appearance: none;
+                                    width: 16px;
+                                    height: 16px;
+                                    border-radius: 50%;
+                                    background: #9B51E0;
+                                    cursor: pointer;
+                                }
+                            `}</style>
+                        </div>
+                    )}
                 </div>
             </div>
         </WidgetWrapper>

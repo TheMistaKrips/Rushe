@@ -2,10 +2,15 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import YouTube from 'react-youtube';
 import {
     Play, Pause, SkipForward, Heart, Volume2, VolumeX,
-    Maximize2, Minimize2, ListMusic, Check, X
+    Maximize2, Minimize2, ListMusic, Check, X, ExternalLink
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Проверяем Electron
+const isElectron = () => {
+    return window.electronAPI && window.electronAPI.isElectron === true;
+};
 
 export default function UnifiedPlayer() {
     const {
@@ -112,6 +117,24 @@ export default function UnifiedPlayer() {
             setShowPlaylistMenu(false);
         }
     }, [currentTrack, addTrackToPlaylist]);
+
+    // Открыть мини-плеер в отдельном окне
+    const openMiniPlayerWidget = () => {
+        if (isElectron()) {
+            window.electronAPI.openWidget('miniplayer');
+        } else {
+            window.open('/widget/miniplayer', '_blank', 'width=420,height=220,menubar=no,toolbar=no,location=no,status=no');
+        }
+    };
+
+    // Открыть полноэкранный плеер в отдельном окне
+    const openFullscreenWidget = () => {
+        if (isElectron()) {
+            window.electronAPI.openWidget('fullscreenplayer');
+        } else {
+            window.open('/widget/fullscreenplayer', '_blank', 'width=500,height=700,menubar=no,toolbar=no,location=no,status=no');
+        }
+    };
 
     const formatTime = (seconds) => {
         if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '0:00';
@@ -233,6 +256,34 @@ export default function UnifiedPlayer() {
                 >
                     <Minimize2 size={24} />
                 </button>
+
+                {/* Кнопка открытия в отдельном окне (только в Electron) */}
+                {isElectron() && (
+                    <button
+                        onClick={openFullscreenWidget}
+                        style={{
+                            position: 'absolute',
+                            top: isMobile ? '20px' : '30px',
+                            left: isMobile ? '20px' : '30px',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '44px',
+                            height: '44px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            transition: 'all 0.3s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                        title="Открыть в отдельном окне"
+                    >
+                        <ExternalLink size={24} />
+                    </button>
+                )}
 
                 <motion.div
                     initial={{ y: 50, opacity: 0 }}
@@ -639,6 +690,24 @@ export default function UnifiedPlayer() {
                 >
                     <SkipForward size={isMobile ? 18 : 22} fill="#fff" color="#fff" />
                 </button>
+
+                {/* Кнопка открытия мини-плеера в отдельном окне */}
+                <button
+                    onClick={openMiniPlayerWidget}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: '4px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: '#888'
+                    }}
+                    title={isElectron() ? "Открыть в отдельном окне" : "Открыть в новом окне"}
+                >
+                    <ExternalLink size={isMobile ? 16 : 20} />
+                </button>
+
                 <button
                     onClick={toggleFullscreenPlayer}
                     style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}

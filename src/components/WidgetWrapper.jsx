@@ -19,7 +19,7 @@ export default function WidgetWrapper({
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        setIsWidgetMode(urlParams.get('widget') === widgetId);
+        setIsWidgetMode(urlParams.get('widget') === widgetId || window.location.pathname.includes(`/widget/${widgetId}`));
 
         // Если в Electron, устанавливаем заголовок окна
         if (isElectron() && window.electronAPI) {
@@ -27,7 +27,8 @@ export default function WidgetWrapper({
         }
     }, [widgetId, title]);
 
-    if (isWidgetMode) {
+    // Если это виджет - рендерим без рамок и с нужными стилями
+    if (isWidgetMode || window.location.pathname.includes(`/widget/${widgetId}`)) {
         return (
             <div style={{
                 width: '100vw',
@@ -38,17 +39,19 @@ export default function WidgetWrapper({
                 padding: 0,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                position: 'relative'
             }}>
                 {children}
             </div>
         );
     }
 
+    // В обычном режиме - просто рендерим
     return children;
 }
 
-// Функция для открытия виджета
+// Функция для открытия виджета в Electron
 export function openWidget(widgetId, options = {}) {
     if (isElectron() && window.electronAPI) {
         window.electronAPI.openWidget(widgetId, options);
