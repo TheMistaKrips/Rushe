@@ -32,13 +32,27 @@ export const useStore = create(
             volume: 0.8,
             isFullscreenPlayerOpen: false,
 
+            // Общее состояние плеера для синхронизации
+            currentTime: 0,
+            duration: 0,
+            playerInstance: null, // Ссылка на YouTube плеер
+            isPlayerReady: false,
+
+            // Установка плеера (вызывается из компонента)
+            setPlayerInstance: (player) => set({ playerInstance: player, isPlayerReady: true }),
+
+            // Обновление времени (вызывается из плеера)
+            updateTime: (time, duration) => set({ currentTime: time, duration: duration }),
+
             playTrack: (track, queue = []) => {
                 console.log('▶️ Playing track:', track.title);
                 set({
                     currentTrack: track,
                     queue: queue.length > 0 ? queue : [track],
                     isPlaying: true,
-                    isFullscreenPlayerOpen: true
+                    isFullscreenPlayerOpen: true,
+                    currentTime: 0,
+                    duration: 0
                 });
             },
 
@@ -55,21 +69,18 @@ export const useStore = create(
 
                 const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
 
-                // Если нашли текущий трек и есть следующий
                 if (currentIndex !== -1 && currentIndex + 1 < queue.length) {
                     const nextTrack = queue[currentIndex + 1];
-                    set({ currentTrack: nextTrack, isPlaying: true });
+                    set({ currentTrack: nextTrack, isPlaying: true, currentTime: 0 });
                 } else {
-                    // Если это был последний трек - ищем похожий (по исполнителю)
                     const sameArtistTracks = queue.filter(t =>
                         t.artist === currentTrack.artist && t.id !== currentTrack.id
                     );
                     if (sameArtistTracks.length > 0) {
                         const randomTrack = sameArtistTracks[Math.floor(Math.random() * sameArtistTracks.length)];
-                        set({ currentTrack: randomTrack, isPlaying: true });
+                        set({ currentTrack: randomTrack, isPlaying: true, currentTime: 0 });
                     } else if (queue.length > 0) {
-                        // Или просто первый трек из очереди
-                        set({ currentTrack: queue[0], isPlaying: true });
+                        set({ currentTrack: queue[0], isPlaying: true, currentTime: 0 });
                     }
                 }
             },
@@ -79,7 +90,7 @@ export const useStore = create(
                 if (!currentTrack || queue.length <= 1) return;
                 const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
                 if (currentIndex - 1 >= 0) {
-                    set({ currentTrack: queue[currentIndex - 1], isPlaying: true });
+                    set({ currentTrack: queue[currentIndex - 1], isPlaying: true, currentTime: 0 });
                 }
             },
 

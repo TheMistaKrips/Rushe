@@ -8,14 +8,14 @@ export default function FullscreenPlayerWidget() {
     const {
         currentTrack, isPlaying, setIsPlaying, playNext,
         likedTracks, toggleLike, volume, setVolume,
-        closeFullscreenPlayer
+        closeFullscreenPlayer,
+        currentTime, duration, setPlayerInstance, updateTime
     } = useStore();
 
     const [player, setPlayer] = useState(null);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
     const [isReady, setIsReady] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const isInternalUpdate = useRef(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -24,24 +24,55 @@ export default function FullscreenPlayerWidget() {
     }, []);
 
     const onReady = useCallback((event) => {
-        setPlayer(event.target);
+        const playerInstance = event.target;
+        setPlayer(playerInstance);
         setIsReady(true);
-        event.target.setVolume(volume * 100);
-        if (isPlaying) {
-            event.target.playVideo();
+        setPlayerInstance(playerInstance);
+
+        playerInstance.setVolume(volume * 100);
+
+        if (currentTime > 0) {
+            playerInstance.seekTo(currentTime, true);
         }
-    }, [volume, isPlaying]);
+
+        if (isPlaying) {
+            playerInstance.playVideo();
+        }
+    }, [volume, isPlaying, currentTime, setPlayerInstance]);
 
     const onStateChange = useCallback((event) => {
         if (event.data === 1) {
             setIsPlaying(true);
-            setDuration(event.target.getDuration());
+            updateTime(event.target.getCurrentTime(), event.target.getDuration());
         } else if (event.data === 2) {
             setIsPlaying(false);
         } else if (event.data === 0) {
             playNext();
         }
-    }, [setIsPlaying, playNext]);
+    }, [setIsPlaying, updateTime, playNext]);
+
+    useEffect(() => {
+        if (player && isReady && isPlaying && !isInternalUpdate.current) {
+            const interval = setInterval(() => {
+                try {
+                    const time = player.getCurrentTime();
+                    const dur = player.getDuration();
+                    updateTime(time, dur);
+                } catch (e) { }
+            }, 500);
+            return () => clearInterval(interval);
+        }
+    }, [player, isReady, isPlaying, updateTime]);
+
+    useEffect(() => {
+        if (player && isReady && currentTrack) {
+            isInternalUpdate.current = true;
+            player.seekTo(currentTime || 0, true);
+            setTimeout(() => {
+                isInternalUpdate.current = false;
+            }, 100);
+        }
+    }, [currentTrack, player, isReady, currentTime]);
 
     useEffect(() => {
         if (player && isReady) {
@@ -58,17 +89,6 @@ export default function FullscreenPlayerWidget() {
             player.setVolume(volume * 100);
         }
     }, [volume, player, isReady]);
-
-    useEffect(() => {
-        if (player && isReady && isPlaying) {
-            const interval = setInterval(() => {
-                try {
-                    setCurrentTime(player.getCurrentTime());
-                } catch (e) { }
-            }, 500);
-            return () => clearInterval(interval);
-        }
-    }, [player, isReady, isPlaying]);
 
     const handleVolumeChange = useCallback((e) => {
         const newVolume = parseFloat(e.target.value);
@@ -146,7 +166,6 @@ export default function FullscreenPlayerWidget() {
                 padding: isMobile ? '20px' : '40px',
                 position: 'relative'
             }}>
-                {/* Кнопка закрытия */}
                 <button
                     onClick={() => {
                         closeFullscreenPlayer();
@@ -182,7 +201,6 @@ export default function FullscreenPlayerWidget() {
                     alignItems: 'center',
                     gap: '24px'
                 }}>
-                    {/* Обложка */}
                     <div style={{
                         width: isMobile ? '280px' : '380px',
                         height: isMobile ? '280px' : '380px',
@@ -200,7 +218,6 @@ export default function FullscreenPlayerWidget() {
                         />
                     </div>
 
-                    {/* Информация */}
                     <div style={{ textAlign: 'center' }}>
                         <h2 style={{ fontSize: isMobile ? '20px' : '26px', fontWeight: 'bold', margin: 0, marginBottom: '4px' }}>
                             {currentTrack.title}
@@ -210,7 +227,7 @@ export default function FullscreenPlayerWidget() {
                         </p>
                     </div>
 
-                    {/* Прогресс */}
+                    {/* Прогресс - СИНХРОНИЗИРОВАННЫЙ */}
                     <div style={{ width: '100%' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{ fontSize: '12px', color: '#666' }}>{formatTime(currentTime)}</span>
@@ -232,7 +249,6 @@ export default function FullscreenPlayerWidget() {
                         </div>
                     </div>
 
-                    {/* Кнопки */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '20px' : '30px' }}>
                         <button
                             onClick={() => toggleLike(currentTrack)}
@@ -263,7 +279,6 @@ export default function FullscreenPlayerWidget() {
                         </button>
                     </div>
 
-                    {/* Громкость */}
                     {!isMobile && (
                         <div style={{
                             display: 'flex',

@@ -5,7 +5,7 @@ import {
     Maximize2, Minimize2, ListMusic, Check, X, ExternalLink
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 // Проверяем Electron
 const isElectron = () => {
@@ -17,17 +17,17 @@ export default function UnifiedPlayer() {
         currentTrack, isPlaying, setIsPlaying, playNext,
         likedTracks, toggleLike, volume, setVolume,
         isFullscreenPlayerOpen, toggleFullscreenPlayer,
-        myPlaylists, addTrackToPlaylist
+        myPlaylists, addTrackToPlaylist,
+        currentTime, duration, setPlayerInstance, updateTime
     } = useStore();
 
     const [player, setPlayer] = useState(null);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
     const [isReady, setIsReady] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const progressRef = useRef(null);
+    const isInternalUpdate = useRef(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -36,24 +36,58 @@ export default function UnifiedPlayer() {
     }, []);
 
     const onReady = useCallback((event) => {
-        setPlayer(event.target);
+        const playerInstance = event.target;
+        setPlayer(playerInstance);
         setIsReady(true);
-        event.target.setVolume(volume * 100);
-        if (isPlaying) {
-            event.target.playVideo();
+        setPlayerInstance(playerInstance);
+
+        playerInstance.setVolume(volume * 100);
+
+        // Если есть сохраненное время, восстанавливаем
+        if (currentTime > 0) {
+            playerInstance.seekTo(currentTime, true);
         }
-    }, [volume, isPlaying]);
+
+        if (isPlaying) {
+            playerInstance.playVideo();
+        }
+    }, [volume, isPlaying, currentTime, setPlayerInstance]);
 
     const onStateChange = useCallback((event) => {
-        if (event.data === 1) {
+        if (event.data === 1) { // Playing
             setIsPlaying(true);
-            setDuration(event.target.getDuration());
-        } else if (event.data === 2) {
+            updateTime(event.target.getCurrentTime(), event.target.getDuration());
+        } else if (event.data === 2) { // Paused
             setIsPlaying(false);
-        } else if (event.data === 0) {
+        } else if (event.data === 0) { // Ended
             playNext();
         }
-    }, [setIsPlaying, playNext]);
+    }, [setIsPlaying, updateTime, playNext]);
+
+    // Синхронизация времени
+    useEffect(() => {
+        if (player && isReady && isPlaying && !isInternalUpdate.current) {
+            const interval = setInterval(() => {
+                try {
+                    const time = player.getCurrentTime();
+                    const dur = player.getDuration();
+                    updateTime(time, dur);
+                } catch (e) { }
+            }, 500);
+            return () => clearInterval(interval);
+        }
+    }, [player, isReady, isPlaying, updateTime]);
+
+    // Восстановление позиции при смене трека
+    useEffect(() => {
+        if (player && isReady && currentTrack) {
+            isInternalUpdate.current = true;
+            player.seekTo(currentTime || 0, true);
+            setTimeout(() => {
+                isInternalUpdate.current = false;
+            }, 100);
+        }
+    }, [currentTrack, player, isReady]);
 
     // Управление плеером
     useEffect(() => {
@@ -72,32 +106,22 @@ export default function UnifiedPlayer() {
         }
     }, [volume, player, isReady]);
 
-    // Обновление времени
-    useEffect(() => {
-        if (player && isReady && isPlaying) {
-            const interval = setInterval(() => {
-                try {
-                    setCurrentTime(player.getCurrentTime());
-                } catch (e) {
-                    // Игнорируем ошибки при получении времени
-                }
-            }, 500);
-            return () => clearInterval(interval);
-        }
-    }, [player, isReady, isPlaying]);
-
     const handleProgressClick = useCallback((e) => {
         if (!player || !isReady || !duration) return;
         try {
+            isInternalUpdate.current = true;
             const rect = e.currentTarget.getBoundingClientRect();
             const x = (e.clientX - rect.left) / rect.width;
             const newTime = x * duration;
             player.seekTo(newTime, true);
-            setCurrentTime(newTime);
+            updateTime(newTime, duration);
+            setTimeout(() => {
+                isInternalUpdate.current = false;
+            }, 100);
         } catch (err) {
             console.warn('Seek error:', err);
         }
-    }, [player, isReady, duration]);
+    }, [player, isReady, duration, updateTime]);
 
     const handleVolumeChange = useCallback((e) => {
         const newVolume = parseFloat(e.target.value);
@@ -105,9 +129,7 @@ export default function UnifiedPlayer() {
         if (player && isReady) {
             try {
                 player.setVolume(newVolume * 100);
-            } catch (err) {
-                console.warn('Volume change error:', err);
-            }
+            } catch (err) { }
         }
     }, [player, isReady, setVolume]);
 
@@ -118,7 +140,6 @@ export default function UnifiedPlayer() {
         }
     }, [currentTrack, addTrackToPlaylist]);
 
-    // Открыть мини-плеер в отдельном окне
     const openMiniPlayerWidget = () => {
         if (isElectron()) {
             window.electronAPI.openWidget('miniplayer');
@@ -127,7 +148,6 @@ export default function UnifiedPlayer() {
         }
     };
 
-    // Открыть полноэкранный плеер в отдельном окне
     const openFullscreenWidget = () => {
         if (isElectron()) {
             window.electronAPI.openWidget('fullscreenplayer');
@@ -168,7 +188,6 @@ export default function UnifiedPlayer() {
         },
     };
 
-    // Стили для мини-плеера
     const miniStyle = isMobile ? {
         position: 'fixed',
         bottom: '86px',
@@ -257,7 +276,6 @@ export default function UnifiedPlayer() {
                     <Minimize2 size={24} />
                 </button>
 
-                {/* Кнопка открытия в отдельном окне (только в Electron) */}
                 {isElectron() && (
                     <button
                         onClick={openFullscreenWidget}
@@ -277,8 +295,6 @@ export default function UnifiedPlayer() {
                             color: '#fff',
                             transition: 'all 0.3s'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                         title="Открыть в отдельном окне"
                     >
                         <ExternalLink size={24} />
@@ -691,7 +707,6 @@ export default function UnifiedPlayer() {
                     <SkipForward size={isMobile ? 18 : 22} fill="#fff" color="#fff" />
                 </button>
 
-                {/* Кнопка открытия мини-плеера в отдельном окне */}
                 <button
                     onClick={openMiniPlayerWidget}
                     style={{

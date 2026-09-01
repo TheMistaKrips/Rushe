@@ -7,35 +7,68 @@ import WidgetWrapper from './WidgetWrapper';
 export default function MiniPlayerWidget() {
     const {
         currentTrack, isPlaying, setIsPlaying, playNext,
-        likedTracks, toggleLike, volume, setVolume
+        likedTracks, toggleLike, volume, setVolume,
+        currentTime, duration, setPlayerInstance, updateTime
     } = useStore();
 
     const [player, setPlayer] = useState(null);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
     const [isReady, setIsReady] = useState(false);
+    const isInternalUpdate = useRef(false);
 
     const onReady = useCallback((event) => {
-        setPlayer(event.target);
+        const playerInstance = event.target;
+        setPlayer(playerInstance);
         setIsReady(true);
-        event.target.setVolume(volume * 100);
-        if (isPlaying) {
-            event.target.playVideo();
+        setPlayerInstance(playerInstance);
+
+        playerInstance.setVolume(volume * 100);
+
+        // Восстанавливаем позицию из store
+        if (currentTime > 0) {
+            playerInstance.seekTo(currentTime, true);
         }
-    }, [volume, isPlaying]);
+
+        if (isPlaying) {
+            playerInstance.playVideo();
+        }
+    }, [volume, isPlaying, currentTime, setPlayerInstance]);
 
     const onStateChange = useCallback((event) => {
         if (event.data === 1) {
             setIsPlaying(true);
-            setDuration(event.target.getDuration());
+            updateTime(event.target.getCurrentTime(), event.target.getDuration());
         } else if (event.data === 2) {
             setIsPlaying(false);
         } else if (event.data === 0) {
             playNext();
         }
-    }, [setIsPlaying, playNext]);
+    }, [setIsPlaying, updateTime, playNext]);
 
-    // Управление плеером
+    // Синхронизация времени
+    useEffect(() => {
+        if (player && isReady && isPlaying && !isInternalUpdate.current) {
+            const interval = setInterval(() => {
+                try {
+                    const time = player.getCurrentTime();
+                    const dur = player.getDuration();
+                    updateTime(time, dur);
+                } catch (e) { }
+            }, 500);
+            return () => clearInterval(interval);
+        }
+    }, [player, isReady, isPlaying, updateTime]);
+
+    // Восстановление позиции при смене трека
+    useEffect(() => {
+        if (player && isReady && currentTrack) {
+            isInternalUpdate.current = true;
+            player.seekTo(currentTime || 0, true);
+            setTimeout(() => {
+                isInternalUpdate.current = false;
+            }, 100);
+        }
+    }, [currentTrack, player, isReady, currentTime]);
+
     useEffect(() => {
         if (player && isReady) {
             if (isPlaying) {
@@ -51,18 +84,6 @@ export default function MiniPlayerWidget() {
             player.setVolume(volume * 100);
         }
     }, [volume, player, isReady]);
-
-    // Обновление времени
-    useEffect(() => {
-        if (player && isReady && isPlaying) {
-            const interval = setInterval(() => {
-                try {
-                    setCurrentTime(player.getCurrentTime());
-                } catch (e) { }
-            }, 500);
-            return () => clearInterval(interval);
-        }
-    }, [player, isReady, isPlaying]);
 
     const handleVolumeChange = useCallback((e) => {
         const newVolume = parseFloat(e.target.value);
@@ -179,7 +200,7 @@ export default function MiniPlayerWidget() {
                     </div>
                 </div>
 
-                {/* Прогресс */}
+                {/* Прогресс - СИНХРОНИЗИРОВАННЫЙ */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                     <span style={{ fontSize: '10px', color: '#666' }}>{formatTime(currentTime)}</span>
                     <div style={{
