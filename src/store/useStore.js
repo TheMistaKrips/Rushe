@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// BroadcastChannel для синхронизации между вкладками
+let broadcastChannel = null;
+
+try {
+    broadcastChannel = new BroadcastChannel('rushe-player');
+} catch (e) {
+    console.warn('BroadcastChannel not supported');
+}
+
 export const useStore = create(
     persist(
         (set, get) => ({
@@ -31,36 +40,63 @@ export const useStore = create(
             isPlaying: false,
             volume: 0.8,
             isFullscreenPlayerOpen: false,
-
-            // Общее состояние плеера для синхронизации
             currentTime: 0,
             duration: 0,
-            playerInstance: null, // Ссылка на YouTube плеер
-            isPlayerReady: false,
-
-            // Установка плеера (вызывается из компонента)
-            setPlayerInstance: (player) => set({ playerInstance: player, isPlayerReady: true }),
-
-            // Обновление времени (вызывается из плеера)
-            updateTime: (time, duration) => set({ currentTime: time, duration: duration }),
 
             playTrack: (track, queue = []) => {
-                console.log('▶️ Playing track:', track.title);
-                set({
+                const newState = {
                     currentTrack: track,
                     queue: queue.length > 0 ? queue : [track],
                     isPlaying: true,
                     isFullscreenPlayerOpen: true,
                     currentTime: 0,
                     duration: 0
-                });
+                };
+                set(newState);
+
+                // Отправляем в другие вкладки
+                if (broadcastChannel) {
+                    broadcastChannel.postMessage({
+                        type: 'PLAY_TRACK',
+                        data: { track, queue: newState.queue }
+                    });
+                }
             },
 
-            setIsPlaying: (isPlaying) => set({ isPlaying }),
-            setVolume: (volume) => set({ volume }),
+            setIsPlaying: (isPlaying) => {
+                set({ isPlaying });
+                if (broadcastChannel) {
+                    broadcastChannel.postMessage({
+                        type: 'SET_PLAYING',
+                        data: { isPlaying }
+                    });
+                }
+            },
+
+            setVolume: (volume) => {
+                set({ volume });
+                if (broadcastChannel) {
+                    broadcastChannel.postMessage({
+                        type: 'SET_VOLUME',
+                        data: { volume }
+                    });
+                }
+            },
+
+            updateTime: (currentTime, duration) => {
+                set({ currentTime, duration });
+                if (broadcastChannel) {
+                    broadcastChannel.postMessage({
+                        type: 'UPDATE_TIME',
+                        data: { currentTime, duration }
+                    });
+                }
+            },
+
             toggleFullscreenPlayer: () => set((state) => ({
                 isFullscreenPlayerOpen: !state.isFullscreenPlayerOpen
             })),
+
             closeFullscreenPlayer: () => set({ isFullscreenPlayerOpen: false }),
 
             playNext: () => {
@@ -71,26 +107,29 @@ export const useStore = create(
 
                 if (currentIndex !== -1 && currentIndex + 1 < queue.length) {
                     const nextTrack = queue[currentIndex + 1];
-                    set({ currentTrack: nextTrack, isPlaying: true, currentTime: 0 });
+                    const newState = { currentTrack: nextTrack, isPlaying: true, currentTime: 0 };
+                    set(newState);
+                    if (broadcastChannel) {
+                        broadcastChannel.postMessage({
+                            type: 'PLAY_TRACK',
+                            data: { track: nextTrack, queue }
+                        });
+                    }
                 } else {
                     const sameArtistTracks = queue.filter(t =>
                         t.artist === currentTrack.artist && t.id !== currentTrack.id
                     );
                     if (sameArtistTracks.length > 0) {
                         const randomTrack = sameArtistTracks[Math.floor(Math.random() * sameArtistTracks.length)];
-                        set({ currentTrack: randomTrack, isPlaying: true, currentTime: 0 });
-                    } else if (queue.length > 0) {
-                        set({ currentTrack: queue[0], isPlaying: true, currentTime: 0 });
+                        const newState = { currentTrack: randomTrack, isPlaying: true, currentTime: 0 };
+                        set(newState);
+                        if (broadcastChannel) {
+                            broadcastChannel.postMessage({
+                                type: 'PLAY_TRACK',
+                                data: { track: randomTrack, queue }
+                            });
+                        }
                     }
-                }
-            },
-
-            playPrevious: () => {
-                const { currentTrack, queue } = get();
-                if (!currentTrack || queue.length <= 1) return;
-                const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
-                if (currentIndex - 1 >= 0) {
-                    set({ currentTrack: queue[currentIndex - 1], isPlaying: true, currentTime: 0 });
                 }
             },
 
@@ -105,6 +144,12 @@ export const useStore = create(
                     set({ likedTracks: likedTracks.filter(t => t.id !== track.id) });
                 } else {
                     set({ likedTracks: [...likedTracks, track] });
+                }
+                if (broadcastChannel) {
+                    broadcastChannel.postMessage({
+                        type: 'TOGGLE_LIKE',
+                        data: { track, liked: !exists }
+                    });
                 }
             },
 
@@ -142,3 +187,52 @@ export const useStore = create(
         { name: 'rushe-storage' }
     )
 );
+
+// Синхронизация между вкладками
+if (broadcastChannel) {
+    broadcastChannel.onmessage = (event) => {
+        const { type, data } = event.data;
+        const currentState = useStore.getState();
+
+        switch (type) {
+            case 'PLAY_TRACK':
+                if (data.track) {
+                    useStore.setState({
+                        currentTrack: data.track,
+                        queue: data.queue || [data.track],
+                        isPlaying: true,
+                        currentTime: 0
+                    });
+                }
+                break;
+
+            case 'SET_PLAYING':
+                useStore.setState({ isPlaying: data.isPlaying });
+                break;
+
+            case 'SET_VOLUME':
+                useStore.setState({ volume: data.volume });
+                break;
+
+            case 'UPDATE_TIME':
+                useStore.setState({
+                    currentTime: data.currentTime,
+                    duration: data.duration
+                });
+                break;
+
+            case 'TOGGLE_LIKE':
+                const { likedTracks } = useStore.getState();
+                if (data.liked) {
+                    useStore.setState({
+                        likedTracks: [...likedTracks, data.track]
+                    });
+                } else {
+                    useStore.setState({
+                        likedTracks: likedTracks.filter(t => t.id !== data.track.id)
+                    });
+                }
+                break;
+        }
+    };
+}

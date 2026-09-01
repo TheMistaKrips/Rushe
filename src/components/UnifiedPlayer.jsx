@@ -7,7 +7,6 @@ import {
 import { useStore } from '../store/useStore';
 import { motion } from 'framer-motion';
 
-// Проверяем Electron
 const isElectron = () => {
     return window.electronAPI && window.electronAPI.isElectron === true;
 };
@@ -17,18 +16,18 @@ export default function UnifiedPlayer({ isWidget = false }) {
         currentTrack, isPlaying, setIsPlaying, playNext,
         likedTracks, toggleLike, volume, setVolume,
         isFullscreenPlayerOpen, toggleFullscreenPlayer,
-        myPlaylists, addTrackToPlaylist
+        myPlaylists, addTrackToPlaylist,
+        currentTime, duration, updateTime
     } = useStore();
 
     const [player, setPlayer] = useState(null);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
     const [isReady, setIsReady] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const progressRef = useRef(null);
     const isInternalUpdate = useRef(false);
+    const isInitialized = useRef(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -42,8 +41,10 @@ export default function UnifiedPlayer({ isWidget = false }) {
         setIsReady(true);
         playerInstance.setVolume(volume * 100);
 
-        if (currentTime > 0) {
+        // Восстанавливаем позицию из store
+        if (currentTime > 0 && !isInitialized.current) {
             playerInstance.seekTo(currentTime, true);
+            isInitialized.current = true;
         }
 
         if (isPlaying) {
@@ -54,39 +55,41 @@ export default function UnifiedPlayer({ isWidget = false }) {
     const onStateChange = useCallback((event) => {
         if (event.data === 1) {
             setIsPlaying(true);
-            setDuration(event.target.getDuration());
+            updateTime(event.target.getCurrentTime(), event.target.getDuration());
         } else if (event.data === 2) {
             setIsPlaying(false);
         } else if (event.data === 0) {
             playNext();
         }
-    }, [setIsPlaying, playNext]);
+    }, [setIsPlaying, updateTime, playNext]);
 
-    // Синхронизация времени
+    // Обновление времени в store
     useEffect(() => {
         if (player && isReady && isPlaying && !isInternalUpdate.current) {
             const interval = setInterval(() => {
                 try {
                     const time = player.getCurrentTime();
                     const dur = player.getDuration();
-                    setCurrentTime(time);
-                    setDuration(dur);
+                    updateTime(time, dur);
                 } catch (e) { }
             }, 500);
             return () => clearInterval(interval);
         }
-    }, [player, isReady, isPlaying]);
+    }, [player, isReady, isPlaying, updateTime]);
 
-    // Восстановление позиции при смене трека
+    // Синхронизация с store (при изменении времени из другой вкладки)
     useEffect(() => {
-        if (player && isReady && currentTrack) {
-            isInternalUpdate.current = true;
-            player.seekTo(currentTime || 0, true);
-            setTimeout(() => {
-                isInternalUpdate.current = false;
-            }, 100);
+        if (player && isReady && currentTrack && !isInternalUpdate.current) {
+            const currentPlayerTime = player.getCurrentTime();
+            if (Math.abs(currentPlayerTime - currentTime) > 1) {
+                isInternalUpdate.current = true;
+                player.seekTo(currentTime, true);
+                setTimeout(() => {
+                    isInternalUpdate.current = false;
+                }, 200);
+            }
         }
-    }, [currentTrack, player, isReady]);
+    }, [currentTime, player, isReady, currentTrack]);
 
     // Управление плеером
     useEffect(() => {
@@ -113,12 +116,12 @@ export default function UnifiedPlayer({ isWidget = false }) {
             const x = (e.clientX - rect.left) / rect.width;
             const newTime = x * duration;
             player.seekTo(newTime, true);
-            setCurrentTime(newTime);
+            updateTime(newTime, duration);
             setTimeout(() => {
                 isInternalUpdate.current = false;
-            }, 100);
+            }, 200);
         } catch (err) { }
-    }, [player, isReady, duration]);
+    }, [player, isReady, duration, updateTime]);
 
     const handleVolumeChange = useCallback((e) => {
         const newVolume = parseFloat(e.target.value);
@@ -138,18 +141,20 @@ export default function UnifiedPlayer({ isWidget = false }) {
     }, [currentTrack, addTrackToPlaylist]);
 
     const openMiniPlayerWidget = () => {
+        const url = `/widget/miniplayer?time=${currentTime}&trackId=${currentTrack?.id}`;
         if (isElectron()) {
             window.electronAPI.openWidget('miniplayer');
         } else {
-            window.open('/widget/miniplayer', '_blank', 'width=420,height=220,menubar=no,toolbar=no,location=no,status=no');
+            window.open(url, '_blank', 'width=420,height=220,menubar=no,toolbar=no,location=no,status=no');
         }
     };
 
     const openFullscreenWidget = () => {
+        const url = `/widget/fullscreenplayer?time=${currentTime}&trackId=${currentTrack?.id}`;
         if (isElectron()) {
             window.electronAPI.openWidget('fullscreenplayer');
         } else {
-            window.open('/widget/fullscreenplayer', '_blank', 'width=500,height=700,menubar=no,toolbar=no,location=no,status=no');
+            window.open(url, '_blank', 'width=500,height=700,menubar=no,toolbar=no,location=no,status=no');
         }
     };
 
@@ -222,7 +227,6 @@ export default function UnifiedPlayer({ isWidget = false }) {
                     flexDirection: 'column',
                     gap: '10px'
                 }}>
-                    {/* Заголовок */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <img
                             src={currentTrack.cover || `https://picsum.photos/seed/${currentTrack.id}/100/100`}
@@ -270,7 +274,6 @@ export default function UnifiedPlayer({ isWidget = false }) {
                         </button>
                     </div>
 
-                    {/* Прогресс */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '10px', color: '#666' }}>{formatTime(currentTime)}</span>
                         <div style={{
@@ -290,7 +293,6 @@ export default function UnifiedPlayer({ isWidget = false }) {
                         <span style={{ fontSize: '10px', color: '#666' }}>{formatTime(duration)}</span>
                     </div>
 
-                    {/* Кнопки */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
                         <button
                             onClick={() => setIsPlaying(!isPlaying)}
@@ -308,10 +310,7 @@ export default function UnifiedPlayer({ isWidget = false }) {
                             }}
                             disabled={!videoId}
                         >
-                            {isPlaying ?
-                                <Pause size={20} fill="#fff" color="#fff" /> :
-                                <Play size={20} fill="#fff" color="#fff" />
-                            }
+                            {isPlaying ? <Pause size={20} fill="#fff" color="#fff" /> : <Play size={20} fill="#fff" color="#fff" />}
                         </button>
 
                         <button
@@ -326,7 +325,6 @@ export default function UnifiedPlayer({ isWidget = false }) {
                             <SkipForward size={18} fill="#fff" color="#fff" />
                         </button>
 
-                        {/* Громкость */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <button
                                 onClick={() => setVolume(volume > 0 ? 0 : 0.8)}
@@ -368,9 +366,8 @@ export default function UnifiedPlayer({ isWidget = false }) {
     }
 
     // ============================================
-    // СТИЛИ ДЛЯ ОСНОВНОГО ПЛЕЕРА (В ПРИЛОЖЕНИИ)
+    // ОСНОВНОЙ ПЛЕЕР
     // ============================================
-
     const miniStyle = isMobile ? {
         position: 'fixed',
         bottom: '86px',
@@ -405,7 +402,6 @@ export default function UnifiedPlayer({ isWidget = false }) {
         boxShadow: '0 10px 40px rgba(0,0,0,0.4)'
     };
 
-    // Полноэкранный режим
     if (isFullscreenPlayerOpen) {
         return (
             <motion.div
@@ -677,7 +673,6 @@ export default function UnifiedPlayer({ isWidget = false }) {
         );
     }
 
-    // Мини-плеер в приложении
     return (
         <motion.div
             initial={{ y: 100, opacity: 0 }}
