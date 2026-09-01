@@ -81,7 +81,7 @@ export default function UnifiedPlayer({ isWidget = false }) {
     useEffect(() => {
         if (player && isReady && currentTrack && !isInternalUpdate.current) {
             const currentPlayerTime = player.getCurrentTime();
-            if (Math.abs(currentPlayerTime - currentTime) > 1) {
+            if (Math.abs(currentPlayerTime - currentTime) > 0.01) {
                 isInternalUpdate.current = true;
                 player.seekTo(currentTime, true);
                 setTimeout(() => {
