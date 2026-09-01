@@ -15,6 +15,7 @@ export default function YouTubePlayer({ isMobile }) {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isReady, setIsReady] = useState(false);
+    const [isSeeking, setIsSeeking] = useState(false);
     const progressRef = useRef(null);
 
     const onReady = (event) => {
@@ -54,21 +55,23 @@ export default function YouTubePlayer({ isMobile }) {
     }, [volume, player, isReady]);
 
     useEffect(() => {
-        if (player && isReady && isPlaying) {
+        if (player && isReady && isPlaying && !isSeeking) {
             const interval = setInterval(() => {
                 setCurrentTime(player.getCurrentTime());
             }, 500);
             return () => clearInterval(interval);
         }
-    }, [player, isReady, isPlaying]);
+    }, [player, isReady, isPlaying, isSeeking]);
 
     const handleProgressClick = (e) => {
         if (!player || !isReady) return;
+        setIsSeeking(true);
         const rect = e.currentTarget.getBoundingClientRect();
         const x = (e.clientX - rect.left) / rect.width;
         const newTime = x * duration;
         player.seekTo(newTime, true);
         setCurrentTime(newTime);
+        setTimeout(() => setIsSeeking(false), 300);
     };
 
     const handleVolumeChange = (e) => {

@@ -61,6 +61,11 @@ export default function Topbar({ isMobile }) {
         window.location.reload();
     };
 
+    const goToSettings = () => {
+        navigate('/settings');
+        setShowDropdown(false);
+    };
+
     const topbarStyle = {
         height: isMobile ? '64px' : '72px',
         display: 'flex',
@@ -213,10 +218,11 @@ export default function Topbar({ isMobile }) {
             </form>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '16px', flexShrink: 0 }}>
-                {!isMobile && (
-                    <div style={{
-                        width: '40px',
-                        height: '40px',
+                <button
+                    onClick={goToSettings}
+                    style={{
+                        width: isMobile ? '36px' : '40px',
+                        height: isMobile ? '36px' : '40px',
                         borderRadius: '50%',
                         backgroundColor: '#14141e',
                         display: 'flex',
@@ -224,14 +230,21 @@ export default function Topbar({ isMobile }) {
                         justifyContent: 'center',
                         cursor: 'pointer',
                         border: '1px solid #2a2a35',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        color: '#888'
                     }}
-                        onMouseEnter={(e) => e.currentTarget.style.borderColor = '#9B51E0'}
-                        onMouseLeave={(e) => e.currentTarget.style.borderColor = '#2a2a35'}
-                    >
-                        <Bell size={18} color="#888" />
-                    </div>
-                )}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = '#9B51E0';
+                        e.currentTarget.style.color = '#9B51E0';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#2a2a35';
+                        e.currentTarget.style.color = '#888';
+                    }}
+                >
+                    <Settings size={isMobile ? 16 : 18} />
+                </button>
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '10px' }}>
                     {!isMobile && (
                         <span style={{ fontSize: '14px', color: '#888' }}>
@@ -302,7 +315,7 @@ export default function Topbar({ isMobile }) {
                                 }}
                                 onMouseEnter={(e) => e.currentTarget.style.background = '#2a2a35'}
                                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                onClick={() => { setShowDropdown(false); navigate('/'); }}
+                                onClick={goToSettings}
                             >
                                 <Settings size={18} color="#666" />
                                 Настройки

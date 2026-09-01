@@ -59,13 +59,13 @@ export default function Home() {
             setError(null);
 
             try {
+                let tracks = [];
                 if (searchQuery.trim()) {
-                    const results = await searchYouTubeTracks(searchQuery, 20);
-                    setRecommendedTracks(results.length > 0 ? results : []);
+                    tracks = await searchYouTubeTracks(searchQuery, 20);
                 } else {
-                    const defaultTracks = await searchYouTubeTracks('best songs 2024', 20);
-                    setRecommendedTracks(defaultTracks.length > 0 ? defaultTracks : []);
+                    tracks = await searchYouTubeTracks('best songs 2024', 20);
                 }
+                setRecommendedTracks(tracks.length > 0 ? tracks : []);
             } catch (err) {
                 console.error("Ошибка загрузки треков:", err);
                 setRecommendedTracks([]);
@@ -97,6 +97,7 @@ export default function Home() {
     };
 
     const handleTrackClick = (track) => {
+        if (!track) return;
         playTrack(track, recommendedTracks);
         if (track.title && track.artist) {
             addToSearchHistory(`${track.title} ${track.artist}`);
@@ -141,7 +142,7 @@ export default function Home() {
                 width: '100%'
             }}
         >
-            {/* МОЯ ВОЛНА - с Lottie анимацией в правом углу */}
+            {/* МОЯ ВОЛНА */}
             <motion.div
                 variants={itemVariants}
                 onClick={handleMyWavePlay}
@@ -195,7 +196,7 @@ export default function Home() {
                     pointerEvents: 'none'
                 }} />
 
-                {/* Lottie анимация - ТОЛЬКО НА ДЕСКТОПЕ, В ПРАВОМ УГЛУ */}
+                {/* Lottie анимация */}
                 {!isMobile && lottieData && (
                     <div style={{
                         position: 'absolute',
@@ -219,7 +220,7 @@ export default function Home() {
                     </div>
                 )}
 
-                {/* Контент - поверх анимации */}
+                {/* Контент */}
                 <div style={{
                     position: 'relative',
                     zIndex: 2,
@@ -386,7 +387,7 @@ export default function Home() {
                 </div>
             </motion.div>
 
-            {/* ПОПУЛЯРНЫЕ ПЛЕЙЛИСТЫ */}
+            {/* ПЛЕЙЛИСТЫ */}
             <motion.div variants={itemVariants}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                     <ListMusic size={22} color="#9B51E0" />
@@ -426,6 +427,9 @@ export default function Home() {
                                 src={playlist.cover}
                                 alt={playlist.title}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => {
+                                    e.target.src = `https://picsum.photos/seed/${playlist.id}/300/300`;
+                                }}
                             />
                             <div className="playlist-overlay" style={{
                                 position: 'absolute',
@@ -458,7 +462,7 @@ export default function Home() {
                 </div>
             </motion.div>
 
-            {/* РЕКОМЕНДУЕМЫЕ ТРЕКИ - БЕЗ ЗАГОЛОВКА */}
+            {/* ТРЕКИ */}
             <motion.div variants={itemVariants}>
                 {error && (
                     <div style={{
@@ -474,6 +478,19 @@ export default function Home() {
                     </div>
                 )}
 
+                {recommendedTracks.length === 0 && !isLoading && !error && (
+                    <div style={{
+                        textAlign: 'center',
+                        color: '#888',
+                        padding: '40px 0'
+                    }}>
+                        <div style={{ fontSize: '16px' }}>Нет доступных треков</div>
+                        <div style={{ fontSize: '14px', marginTop: '8px', color: '#555' }}>
+                            Попробуйте изменить запрос
+                        </div>
+                    </div>
+                )}
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {recommendedTracks.map((track, index) => {
                         const isActive = currentTrack?.id === track.id;
@@ -481,7 +498,7 @@ export default function Home() {
 
                         return (
                             <motion.div
-                                key={track.id}
+                                key={track.id || index}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.04 }}
@@ -512,8 +529,8 @@ export default function Home() {
                             >
                                 <div style={{ position: 'relative', flexShrink: 0 }}>
                                     <img
-                                        src={track.cover}
-                                        alt={track.title}
+                                        src={track.cover || `https://picsum.photos/seed/${track.id || index}/100/100`}
+                                        alt={track.title || 'Track'}
                                         style={{
                                             width: '48px',
                                             height: '48px',
@@ -521,7 +538,7 @@ export default function Home() {
                                             objectFit: 'cover'
                                         }}
                                         onError={(e) => {
-                                            e.target.src = `https://picsum.photos/seed/${track.id}/100/100`;
+                                            e.target.src = `https://picsum.photos/seed/${track.id || index}/100/100`;
                                         }}
                                     />
                                     {isActive && (
@@ -558,14 +575,16 @@ export default function Home() {
                                         overflow: 'hidden',
                                         fontSize: '14px'
                                     }}>
-                                        {track.title}
+                                        {track.title || 'Unknown Track'}
                                     </span>
-                                    <span style={{ fontSize: '12px', color: '#888' }}>{track.artist}</span>
+                                    <span style={{ fontSize: '12px', color: '#888' }}>
+                                        {track.artist || 'Unknown Artist'}
+                                    </span>
                                 </div>
 
                                 {!isMobile && (
                                     <span style={{ fontSize: '13px', color: '#666', marginRight: '8px' }}>
-                                        {track.time}
+                                        {track.time || '0:00'}
                                     </span>
                                 )}
 

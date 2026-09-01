@@ -97,9 +97,11 @@ export default function FullscreenPlayer() {
         }
     };
 
-    // Закрытие без остановки трека
+    // Закрытие БЕЗ остановки трека
     const handleClose = () => {
+        // Не останавливаем музыку, просто закрываем полноэкранный режим
         closeFullscreenPlayer();
+        // Музыка продолжает играть в фоне через YouTubePlayer
     };
 
     const formatTime = (seconds) => {
@@ -365,7 +367,6 @@ export default function FullscreenPlayer() {
                     </button>
                 </motion.div>
 
-                {/* Громкость только на десктопе */}
                 {!isMobile && (
                     <motion.div
                         initial={{ y: 30, opacity: 0 }}
