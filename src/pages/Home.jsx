@@ -322,7 +322,7 @@ export default function Home() {
                         borderRadius: '12px',
                         backdropFilter: 'blur(10px)'
                     }}>
-                        {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Рекомендуемые треки'}
+                        {likedTracks.length > 0 ? 'Из ваших лайков' : 'Рекомендуемые треки'}
                     </div>
                 </div>
             </motion.div>

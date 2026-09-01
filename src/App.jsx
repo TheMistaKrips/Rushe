@@ -10,6 +10,7 @@ import Liked from './pages/Liked';
 import PlaylistDetail from './pages/PlaylistDetail';
 import Onboarding from './pages/Onboarding';
 import Settings from './pages/Settings';
+import WidgetRouter from './pages/WidgetRouter';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import UnifiedPlayer from './components/UnifiedPlayer';
@@ -25,6 +26,9 @@ function AppContent() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Проверяем, не открыт ли виджет
+  const isWidget = location.pathname.startsWith('/widget');
+
   if (!hasCompletedOnboarding) {
     return (
       <Routes>
@@ -32,6 +36,11 @@ function AppContent() {
         <Route path="*" element={<Navigate to="/onboarding" replace />} />
       </Routes>
     );
+  }
+
+  // Если это виджет - показываем только его
+  if (isWidget) {
+    return <WidgetRouter />;
   }
 
   const appStyle = {
