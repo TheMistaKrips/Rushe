@@ -1,6 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
 import YouTube from 'react-youtube';
-import { Play, Pause, SkipForward, Heart, Volume2, VolumeX, Minimize2, X } from 'lucide-react';
+import {
+    Play, Pause, SkipForward, Heart, Volume2, VolumeX,
+    Minimize2, X, Plus, ListMusic, Check
+} from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -8,7 +11,8 @@ export default function FullscreenPlayer() {
     const {
         currentTrack, isPlaying, setIsPlaying, playNext,
         likedTracks, toggleLike, volume, setVolume,
-        isFullscreenPlayerOpen, closeFullscreenPlayer
+        isFullscreenPlayerOpen, closeFullscreenPlayer,
+        myPlaylists, addTrackToPlaylist
     } = useStore();
 
     const [player, setPlayer] = useState(null);
@@ -16,6 +20,7 @@ export default function FullscreenPlayer() {
     const [duration, setDuration] = useState(0);
     const [isReady, setIsReady] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -77,6 +82,21 @@ export default function FullscreenPlayer() {
         setCurrentTime(newTime);
     };
 
+    const handleVolumeChange = (e) => {
+        const newVolume = parseFloat(e.target.value);
+        setVolume(newVolume);
+        if (player && isReady) {
+            player.setVolume(newVolume * 100);
+        }
+    };
+
+    const handleAddToPlaylist = (playlistId) => {
+        if (currentTrack) {
+            addTrackToPlaylist(playlistId, currentTrack);
+            setShowPlaylistMenu(false);
+        }
+    };
+
     const formatTime = (seconds) => {
         if (!seconds || isNaN(seconds)) return '0:00';
         const mins = Math.floor(seconds / 60);
@@ -88,6 +108,10 @@ export default function FullscreenPlayer() {
 
     const isLiked = likedTracks.some(t => t.id === currentTrack.id);
     const videoId = currentTrack.videoId;
+    const isInPlaylist = (playlistId) => {
+        const playlist = myPlaylists.find(p => p.id === playlistId);
+        return playlist?.tracks?.some(t => t.id === currentTrack.id) || false;
+    };
 
     const opts = {
         height: '0',
@@ -113,7 +137,7 @@ export default function FullscreenPlayer() {
             style={{
                 position: 'fixed',
                 inset: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.92)',
+                backgroundColor: 'rgba(0, 0, 0, 0.95)',
                 backdropFilter: 'blur(40px)',
                 zIndex: 2000,
                 display: 'flex',
@@ -195,22 +219,6 @@ export default function FullscreenPlayer() {
                             e.target.src = `https://picsum.photos/seed/${currentTrack.id}/400/400`;
                         }}
                     />
-                    {isPlaying && (
-                        <div style={{
-                            position: 'absolute',
-                            bottom: '16px',
-                            right: '16px',
-                            display: 'flex',
-                            gap: '4px',
-                            alignItems: 'center',
-                            backgroundColor: 'rgba(0,0,0,0.6)',
-                            padding: '8px 16px',
-                            borderRadius: '20px',
-                            backdropFilter: 'blur(10px)'
-                        }}>
-                            <span style={{ fontSize: '11px', color: '#fff' }}>▶ Сейчас играет</span>
-                        </div>
-                    )}
                 </motion.div>
 
                 <motion.div
@@ -263,7 +271,7 @@ export default function FullscreenPlayer() {
                     initial={{ y: 30, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.5 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '24px' : '36px' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '20px' : '30px' }}
                 >
                     <button
                         onClick={() => toggleLike(currentTrack)}
@@ -271,6 +279,66 @@ export default function FullscreenPlayer() {
                     >
                         <Heart size={isMobile ? 28 : 32} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#fff'} />
                     </button>
+
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setShowPlaylistMenu(!showPlaylistMenu)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fff' }}
+                        >
+                            <ListMusic size={isMobile ? 28 : 32} color="#fff" />
+                        </button>
+
+                        {showPlaylistMenu && (
+                            <div style={{
+                                position: 'absolute',
+                                bottom: '50px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                backgroundColor: '#1c1c1e',
+                                borderRadius: '16px',
+                                border: '1px solid #2a2a35',
+                                padding: '8px',
+                                minWidth: '180px',
+                                maxHeight: '200px',
+                                overflowY: 'auto',
+                                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                                zIndex: 3000
+                            }}>
+                                {myPlaylists.length === 0 ? (
+                                    <div style={{ padding: '12px', color: '#666', fontSize: '13px' }}>
+                                        Нет плейлистов
+                                    </div>
+                                ) : (
+                                    myPlaylists.map(playlist => {
+                                        const added = isInPlaylist(playlist.id);
+                                        return (
+                                            <div
+                                                key={playlist.id}
+                                                onClick={() => handleAddToPlaylist(playlist.id)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '10px',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '10px',
+                                                    cursor: 'pointer',
+                                                    transition: 'background 0.2s',
+                                                    color: added ? '#888' : '#fff',
+                                                    fontSize: '13px'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = '#2a2a35'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <span>{playlist.name}</span>
+                                                {added && <Check size={16} color="#9B51E0" />}
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        )}
+                    </div>
+
                     <button
                         onClick={() => setIsPlaying(!isPlaying)}
                         style={{
@@ -316,7 +384,7 @@ export default function FullscreenPlayer() {
                         max="1"
                         step="0.01"
                         value={volume}
-                        onChange={(e) => setVolume(parseFloat(e.target.value))}
+                        onChange={handleVolumeChange}
                         style={{
                             flex: 1,
                             height: '4px',

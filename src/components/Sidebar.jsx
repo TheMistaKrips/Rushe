@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Search, Library, Heart, LogOut, User, Settings } from 'lucide-react';
+import { Home, Search, Library, Heart, LogOut, User } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion } from 'framer-motion';
 
@@ -91,37 +91,6 @@ export default function Sidebar({ isMobile }) {
                         RushE
                     </span>
                 </motion.div>
-            )}
-
-            {isMobile && (
-                <div style={{
-                    position: 'absolute',
-                    top: '-40px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(20,20,30,0.95)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
-                }}>
-                    <img
-                        src="/rushe_logo_colored.png"
-                        alt="RushE"
-                        style={{
-                            width: '28px',
-                            height: '28px',
-                            objectFit: 'contain'
-                        }}
-                        onError={(e) => {
-                            e.target.style.display = 'none';
-                        }}
-                    />
-                </div>
             )}
 
             <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: isMobile ? '0' : '6px', width: '100%' }}>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Heart, ArrowLeft, Trash2, Plus, Search, X, Music } from 'lucide-react';
+import { Heart, ArrowLeft, Trash2, Plus, Search, X, Music, Play } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { searchYouTubeTracks } from '../config/youtube';
@@ -15,6 +15,7 @@ export default function PlaylistDetail() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [searchError, setSearchError] = useState(null);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -34,20 +35,29 @@ export default function PlaylistDetail() {
     useEffect(() => {
         if (!searchQuery.trim()) {
             setSearchResults([]);
+            setSearchError(null);
             return;
         }
 
         const timer = setTimeout(async () => {
             setIsSearching(true);
+            setSearchError(null);
             try {
-                const results = await searchYouTubeTracks(searchQuery, 10);
-                setSearchResults(results);
+                const results = await searchYouTubeTracks(searchQuery, 15);
+                if (results && results.length > 0) {
+                    setSearchResults(results);
+                } else {
+                    setSearchResults([]);
+                    setSearchError('Ничего не найдено');
+                }
             } catch (err) {
                 console.error('Search error:', err);
+                setSearchError('Ошибка поиска');
+                setSearchResults([]);
             } finally {
                 setIsSearching(false);
             }
-        }, 300);
+        }, 500);
 
         return () => clearTimeout(timer);
     }, [searchQuery]);
@@ -145,6 +155,7 @@ export default function PlaylistDetail() {
                                     outline: 'none',
                                     fontSize: '14px'
                                 }}
+                                autoFocus
                             />
                             {searchQuery && (
                                 <button
@@ -161,9 +172,33 @@ export default function PlaylistDetail() {
                             )}
                         </div>
 
+                        {searchError && (
+                            <div style={{
+                                textAlign: 'center',
+                                color: '#f1c40f',
+                                padding: '16px',
+                                fontSize: '14px',
+                                backgroundColor: 'rgba(255,200,0,0.05)',
+                                borderRadius: '10px'
+                            }}>
+                                {searchError}
+                            </div>
+                        )}
+
                         <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                             {isSearching ? (
-                                <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>Поиск...</div>
+                                <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>
+                                    <div style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
+                                        <Music size={24} color="#9B51E0" />
+                                    </div>
+                                    <div style={{ marginTop: '8px', fontSize: '14px' }}>Поиск...</div>
+                                    <style>{`
+                                        @keyframes spin {
+                                            0% { transform: rotate(0deg); }
+                                            100% { transform: rotate(360deg); }
+                                        }
+                                    `}</style>
+                                </div>
                             ) : searchResults.length > 0 ? (
                                 searchResults.map((track) => {
                                     const isAdded = isTrackInPlaylist(track.id);
@@ -212,14 +247,14 @@ export default function PlaylistDetail() {
                                                 </button>
                                             )}
                                             {isAdded && (
-                                                <span style={{ fontSize: '11px', color: '#888' }}>✅ Добавлен</span>
+                                                <span style={{ fontSize: '11px', color: '#9B51E0' }}>✅ В плейлисте</span>
                                             )}
                                         </div>
                                     );
                                 })
-                            ) : searchQuery && (
+                            ) : searchQuery && !isSearching && (
                                 <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>
-                                    Ничего не найдено
+                                    Введите запрос для поиска треков
                                 </div>
                             )}
                         </div>

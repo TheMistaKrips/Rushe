@@ -8,14 +8,20 @@ export const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 
 // Кэш для треков
 const cache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 минут
 
 export async function searchYouTubeTracks(query, maxResults = 30) {
     const cacheKey = `${query}_${maxResults}`;
 
     // Проверяем кэш
     if (cache.has(cacheKey)) {
-        console.log('📦 Из кэша:', query);
-        return cache.get(cacheKey);
+        const cached = cache.get(cacheKey);
+        if (Date.now() - cached.timestamp < CACHE_DURATION) {
+            console.log('📦 Из кэша:', query);
+            return cached.data;
+        } else {
+            cache.delete(cacheKey);
+        }
     }
 
     console.log('🔑 API Key:', YOUTUBE_API_KEY ? '✅ Найден' : '❌ НЕ НАЙДЕН');
@@ -23,7 +29,7 @@ export async function searchYouTubeTracks(query, maxResults = 30) {
 
     if (!YOUTUBE_API_KEY) {
         console.error('❌ YouTube API key не найден!');
-        return DEMO_TRACKS;
+        return [];
     }
 
     try {
@@ -34,7 +40,7 @@ export async function searchYouTubeTracks(query, maxResults = 30) {
         if (!response.ok) {
             const errorData = await response.json();
             console.error('❌ YouTube API Error:', errorData);
-            return DEMO_TRACKS;
+            return [];
         }
 
         const data = await response.json();
@@ -64,12 +70,16 @@ export async function searchYouTubeTracks(query, maxResults = 30) {
         });
 
         // Сохраняем в кэш
-        cache.set(cacheKey, tracks);
+        cache.set(cacheKey, {
+            data: tracks,
+            timestamp: Date.now()
+        });
+
         console.log(`✅ Найдено ${tracks.length} треков`);
         return tracks;
     } catch (error) {
         console.error('❌ YouTube search error:', error);
-        return DEMO_TRACKS;
+        return [];
     }
 }
 
@@ -101,34 +111,26 @@ function parseDuration(duration) {
     return hours * 3600 + minutes * 60 + seconds;
 }
 
-export function formatDuration(seconds) {
+function formatDuration(seconds) {
     if (!seconds) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
-export const DEMO_TRACKS = [
-    { id: 'demo1', title: 'Midnight City', artist: 'M83', time: '4:03', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', duration: 243, isDemo: true },
-    { id: 'demo2', title: 'Starboy', artist: 'The Weeknd', time: '3:50', cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', duration: 230, isDemo: true },
-    { id: 'demo3', title: 'Blinding Lights', artist: 'The Weeknd', time: '3:20', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', duration: 200, isDemo: true },
-    { id: 'demo4', title: 'Believer', artist: 'Imagine Dragons', time: '3:24', cover: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', duration: 204, isDemo: true },
-    { id: 'demo5', title: 'Radioactive', artist: 'Imagine Dragons', time: '3:06', cover: 'https://images.unsplash.com/photo-1493225457124-a1a2a5956093?w=100&q=80', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', duration: 186, isDemo: true },
-];
-
-// Популярные чарты для главной
+// Чарты для главной
 export const CHARTS = [
-    { id: 'chart1', title: '🔥 Топ 100 мира', icon: '🌍' },
-    { id: 'chart2', title: '🎵 Поп-хиты', icon: '🎤' },
-    { id: 'chart3', title: '💃 Танцевальные', icon: '🕺' },
-    { id: 'chart4', title: '🎸 Рок легенды', icon: '🎸' },
-    { id: 'chart5', title: '🎹 Инструментал', icon: '🎹' },
+    { id: 'chart1', title: 'Топ 100 мира' },
+    { id: 'chart2', title: 'Поп-хиты' },
+    { id: 'chart3', title: 'Танцевальные' },
+    { id: 'chart4', title: 'Рок легенды' },
+    { id: 'chart5', title: 'Инструментал' },
 ];
 
-// Популярные плейлисты для главной
+// Плейлисты для главной
 export const PLAYLISTS = [
-    { id: 'pl1', title: 'Утренний кофе', cover: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', tracks: 45 },
-    { id: 'pl2', title: 'Вечерний релакс', cover: 'https://images.unsplash.com/photo-1471180625745-944903837c22?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', tracks: 32 },
-    { id: 'pl3', title: 'Для тренировок', cover: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', tracks: 28 },
-    { id: 'pl4', title: 'Романтический', cover: 'https://images.unsplash.com/reserve/Af0sF2OS5S5gatqrKzVP_Silhoutte.jpg?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', tracks: 19 },
+    { id: 'pl1', title: 'Утренний кофе', cover: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200&q=80', tracks: 45 },
+    { id: 'pl2', title: 'Вечерний релакс', cover: 'https://images.unsplash.com/photo-1519682577862-22b62b24e493?w=200&q=80', tracks: 32 },
+    { id: 'pl3', title: 'Для тренировок', cover: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&q=80', tracks: 28 },
+    { id: 'pl4', title: 'Романтический', cover: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=200&q=80', tracks: 19 },
 ];

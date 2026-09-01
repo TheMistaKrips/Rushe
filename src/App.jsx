@@ -9,6 +9,7 @@ import Library from './pages/Library';
 import Liked from './pages/Liked';
 import PlaylistDetail from './pages/PlaylistDetail';
 import Onboarding from './pages/Onboarding';
+import Settings from './pages/Settings';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import YouTubePlayer from './components/YouTubePlayer';
@@ -76,6 +77,7 @@ function AppContent() {
               <Route path="/library" element={<Library />} />
               <Route path="/liked" element={<Liked />} />
               <Route path="/playlist/:id" element={<PlaylistDetail />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AnimatePresence>

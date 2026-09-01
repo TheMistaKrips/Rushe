@@ -15,6 +15,7 @@ export default function YouTubePlayer({ isMobile }) {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isReady, setIsReady] = useState(false);
+    const [showVolume, setShowVolume] = useState(false);
     const progressRef = useRef(null);
 
     const onReady = (event) => {
@@ -69,6 +70,14 @@ export default function YouTubePlayer({ isMobile }) {
         const newTime = x * duration;
         player.seekTo(newTime, true);
         setCurrentTime(newTime);
+    };
+
+    const handleVolumeChange = (e) => {
+        const newVolume = parseFloat(e.target.value);
+        setVolume(newVolume);
+        if (player && isReady) {
+            player.setVolume(newVolume * 100);
+        }
     };
 
     const formatTime = (seconds) => {
@@ -192,7 +201,6 @@ export default function YouTubePlayer({ isMobile }) {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '12px', overflow: 'hidden', minWidth: 0, cursor: 'pointer' }} onClick={toggleFullscreenPlayer}>
                 <span style={{ fontWeight: 'bold', fontSize: isMobile ? '13px' : '14px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                     {currentTrack.title}
-                    {!videoId && <span style={{ fontSize: '10px', color: '#f1c40f', marginLeft: '6px' }}>демо</span>}
                 </span>
                 <span style={{ fontSize: isMobile ? '11px' : '12px', color: '#888', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                     {currentTrack.artist}
@@ -220,17 +228,6 @@ export default function YouTubePlayer({ isMobile }) {
                                 borderRadius: '2px',
                                 transition: 'width 0.5s linear'
                             }} />
-                            <div style={{
-                                position: 'absolute',
-                                right: '-4px',
-                                top: '-4px',
-                                width: '10px',
-                                height: '10px',
-                                borderRadius: '50%',
-                                backgroundColor: '#9B51E0',
-                                opacity: 0,
-                                transition: 'opacity 0.2s'
-                            }} />
                         </div>
                         <span style={{ fontSize: '10px', color: '#666' }}>{formatTime(duration)}</span>
                     </div>
@@ -244,6 +241,61 @@ export default function YouTubePlayer({ isMobile }) {
                 >
                     <Heart size={isMobile ? 18 : 22} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#fff'} />
                 </button>
+
+                {isMobile && (
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setShowVolume(!showVolume)}
+                            style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}
+                        >
+                            {volume > 0 ? <Volume2 size={18} color="#888" /> : <VolumeX size={18} color="#888" />}
+                        </button>
+                        {showVolume && (
+                            <div style={{
+                                position: 'absolute',
+                                bottom: '40px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                backgroundColor: 'rgba(28,28,30,0.95)',
+                                borderRadius: '12px',
+                                padding: '12px 8px',
+                                border: '1px solid #2a2a35',
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                                zIndex: 100
+                            }}>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={volume}
+                                    onChange={handleVolumeChange}
+                                    style={{
+                                        width: '100px',
+                                        height: '4px',
+                                        WebkitAppearance: 'none',
+                                        backgroundColor: '#2a2a35',
+                                        borderRadius: '2px',
+                                        outline: 'none',
+                                        transform: 'rotate(-90deg)',
+                                        transformOrigin: 'center'
+                                    }}
+                                />
+                                <style>{`
+                                    input[type="range"]::-webkit-slider-thumb {
+                                        -webkit-appearance: none;
+                                        width: 16px;
+                                        height: 16px;
+                                        border-radius: 50%;
+                                        background: #9B51E0;
+                                        cursor: pointer;
+                                    }
+                                `}</style>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <button
                     onClick={() => setIsPlaying(!isPlaying)}
                     style={{
@@ -274,6 +326,43 @@ export default function YouTubePlayer({ isMobile }) {
                     </button>
                 )}
             </div>
+
+            {!isMobile && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '15px' }}>
+                    <button
+                        onClick={() => setVolume(volume > 0 ? 0 : 0.8)}
+                        style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}
+                    >
+                        {volume > 0 ? <Volume2 size={18} color="#888" /> : <VolumeX size={18} color="#888" />}
+                    </button>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={volume}
+                        onChange={handleVolumeChange}
+                        style={{
+                            width: '80px',
+                            height: '4px',
+                            WebkitAppearance: 'none',
+                            backgroundColor: '#2a2a35',
+                            borderRadius: '2px',
+                            outline: 'none'
+                        }}
+                    />
+                    <style>{`
+                        input[type="range"]::-webkit-slider-thumb {
+                            -webkit-appearance: none;
+                            width: 14px;
+                            height: 14px;
+                            border-radius: 50%;
+                            background: #9B51E0;
+                            cursor: pointer;
+                        }
+                    `}</style>
+                </div>
+            )}
 
             <style>{`
                 @keyframes pulse {

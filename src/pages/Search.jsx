@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Heart, Music, AlertCircle, Clock, Plus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Heart, Music, AlertCircle, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { searchYouTubeTracks } from '../config/youtube';
@@ -14,6 +14,8 @@ export default function Search() {
     const [isLoading, setIsLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [error, setError] = useState(null);
+    const [retryCount, setRetryCount] = useState(0);
+    const searchTimeoutRef = useRef(null);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -21,40 +23,106 @@ export default function Search() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Pull to refresh
     useEffect(() => {
-        const fetchMusic = async () => {
-            if (!searchQuery.trim()) {
-                setResults([]);
-                setError(null);
-                return;
-            }
+        let startY = 0;
+        let isPulling = false;
 
-            setIsLoading(true);
-            setError(null);
-
-            try {
-                const tracks = await searchYouTubeTracks(searchQuery, 40);
-
-                if (tracks && tracks.length > 0) {
-                    setResults(tracks);
-                } else {
-                    setResults([]);
-                    setError(`По запросу "${searchQuery}" ничего не найдено`);
-                }
-            } catch (err) {
-                console.error("Ошибка поиска:", err);
-                setError('Не удалось выполнить поиск. Проверьте подключение к интернету.');
-                setResults([]);
-            } finally {
-                setIsLoading(false);
+        const handleTouchStart = (e) => {
+            if (window.scrollY === 0) {
+                startY = e.touches[0].clientY;
+                isPulling = true;
             }
         };
 
-        const timeoutId = setTimeout(() => {
+        const handleTouchMove = (e) => {
+            if (!isPulling) return;
+            const diff = e.touches[0].clientY - startY;
+            if (diff > 80) {
+                isPulling = false;
+                handleRefresh();
+            }
+        };
+
+        const handleTouchEnd = () => {
+            isPulling = false;
+        };
+
+        const container = document.querySelector('.search-container');
+        if (container) {
+            container.addEventListener('touchstart', handleTouchStart);
+            container.addEventListener('touchmove', handleTouchMove);
+            container.addEventListener('touchend', handleTouchEnd);
+        }
+
+        return () => {
+            if (container) {
+                container.removeEventListener('touchstart', handleTouchStart);
+                container.removeEventListener('touchmove', handleTouchMove);
+                container.removeEventListener('touchend', handleTouchEnd);
+            }
+        };
+    }, []);
+
+    const handleRefresh = () => {
+        if (searchQuery.trim()) {
             fetchMusic();
+        }
+    };
+
+    const fetchMusic = async (query = searchQuery) => {
+        if (!query.trim()) {
+            setResults([]);
+            setError(null);
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const tracks = await searchYouTubeTracks(query, 40);
+
+            if (tracks && tracks.length > 0) {
+                setResults(tracks);
+                setRetryCount(0);
+            } else {
+                setResults([]);
+                setError(`По запросу "${query}" ничего не найдено на YouTube`);
+            }
+        } catch (err) {
+            console.error("Ошибка поиска:", err);
+            if (retryCount < 2) {
+                setRetryCount(prev => prev + 1);
+                setTimeout(() => fetchMusic(query), 1000);
+            } else {
+                setError('Не удалось выполнить поиск. Проверьте подключение к интернету.');
+                setResults([]);
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        searchTimeoutRef.current = setTimeout(() => {
+            if (searchQuery.trim()) {
+                fetchMusic(searchQuery);
+            } else {
+                setResults([]);
+                setError(null);
+            }
         }, 500);
 
-        return () => clearTimeout(timeoutId);
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
     }, [searchQuery]);
 
     const handleTrackClick = (track) => {
@@ -77,7 +145,17 @@ export default function Search() {
     });
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="search-container" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            height: '100%',
+            width: '100%',
+            maxWidth: '1000px',
+            margin: '0 auto',
+            overflow: 'auto',
+            WebkitOverflowScrolling: 'touch'
+        }}>
             <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, display: isMobile ? 'none' : 'block' }}>
                 Результаты поиска
             </h2>
@@ -102,6 +180,22 @@ export default function Search() {
                 }}>
                     <AlertCircle size={20} />
                     <span>{error}</span>
+                    {retryCount < 2 && (
+                        <button
+                            onClick={() => fetchMusic(searchQuery)}
+                            style={{
+                                background: 'none',
+                                border: '1px solid #f1c40f',
+                                borderRadius: '8px',
+                                color: '#f1c40f',
+                                padding: '4px 12px',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                            }}
+                        >
+                            Повторить
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -178,27 +272,25 @@ export default function Search() {
 
                                 {!isMobile && <span style={{ width: '60px', color: '#666', fontSize: '13px', textAlign: 'right', paddingRight: '16px' }}>{track.time}</span>}
 
-                                <div style={{ display: 'flex', gap: '4px' }}>
-                                    <button
-                                        style={{
-                                            width: '36px',
-                                            height: '36px',
-                                            background: 'none',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            borderRadius: '50%',
-                                            transition: 'background 0.2s'
-                                        }}
-                                        onClick={(e) => { e.stopPropagation(); toggleLike(track); }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                    >
-                                        <Heart size={18} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#666'} />
-                                    </button>
-                                </div>
+                                <button
+                                    style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        borderRadius: '50%',
+                                        transition: 'background 0.2s'
+                                    }}
+                                    onClick={(e) => { e.stopPropagation(); toggleLike(track); }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <Heart size={18} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#666'} />
+                                </button>
                             </motion.div>
                         );
                     })
