@@ -97,6 +97,11 @@ export default function FullscreenPlayer() {
         }
     };
 
+    // Закрытие без остановки трека
+    const handleClose = () => {
+        closeFullscreenPlayer();
+    };
+
     const formatTime = (seconds) => {
         if (!seconds || isNaN(seconds)) return '0:00';
         const mins = Math.floor(seconds / 60);
@@ -158,7 +163,7 @@ export default function FullscreenPlayer() {
             )}
 
             <button
-                onClick={closeFullscreenPlayer}
+                onClick={handleClose}
                 style={{
                     position: 'absolute',
                     top: isMobile ? '20px' : '30px',
@@ -178,7 +183,7 @@ export default function FullscreenPlayer() {
                 onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
             >
-                <X size={24} />
+                <Minimize2 size={24} />
             </button>
 
             <motion.div
@@ -260,7 +265,7 @@ export default function FullscreenPlayer() {
                                 height: '100%',
                                 backgroundColor: '#9B51E0',
                                 borderRadius: '2px',
-                                transition: 'width 0.3s linear'
+                                transition: 'width 0.1s linear'
                             }} />
                         </div>
                         <span style={{ fontSize: '12px', color: '#666' }}>{formatTime(duration)}</span>
@@ -360,51 +365,54 @@ export default function FullscreenPlayer() {
                     </button>
                 </motion.div>
 
-                <motion.div
-                    initial={{ y: 30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        width: '100%',
-                        maxWidth: '300px'
-                    }}
-                >
-                    <button
-                        onClick={() => setVolume(volume > 0 ? 0 : 0.8)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888' }}
-                    >
-                        {volume > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
-                    </button>
-                    <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={volume}
-                        onChange={handleVolumeChange}
+                {/* Громкость только на десктопе */}
+                {!isMobile && (
+                    <motion.div
+                        initial={{ y: 30, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.6 }}
                         style={{
-                            flex: 1,
-                            height: '4px',
-                            WebkitAppearance: 'none',
-                            backgroundColor: '#2a2a35',
-                            borderRadius: '2px',
-                            outline: 'none'
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            width: '100%',
+                            maxWidth: '300px'
                         }}
-                    />
-                    <style>{`
-                        input[type="range"]::-webkit-slider-thumb {
-                            -webkit-appearance: none;
-                            width: 16px;
-                            height: 16px;
-                            border-radius: 50%;
-                            background: #9B51E0;
-                            cursor: pointer;
-                        }
-                    `}</style>
-                </motion.div>
+                    >
+                        <button
+                            onClick={() => setVolume(volume > 0 ? 0 : 0.8)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888' }}
+                        >
+                            {volume > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                        </button>
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={volume}
+                            onChange={handleVolumeChange}
+                            style={{
+                                flex: 1,
+                                height: '4px',
+                                WebkitAppearance: 'none',
+                                backgroundColor: '#2a2a35',
+                                borderRadius: '2px',
+                                outline: 'none'
+                            }}
+                        />
+                        <style>{`
+                            input[type="range"]::-webkit-slider-thumb {
+                                -webkit-appearance: none;
+                                width: 16px;
+                                height: 16px;
+                                border-radius: 50%;
+                                background: #9B51E0;
+                                cursor: pointer;
+                            }
+                        `}</style>
+                    </motion.div>
+                )}
             </motion.div>
         </motion.div>
     );

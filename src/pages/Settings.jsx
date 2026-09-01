@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Volume2, Moon, Sun, Trash2, User, Music, Heart } from 'lucide-react';
+import { ArrowLeft, Volume2, User, Music, Heart, Trash2, ListMusic } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export default function Settings() {
     const navigate = useNavigate();
     const { volume, setVolume, likedTracks, userProfile, myPlaylists } = useStore();
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [darkMode, setDarkMode] = useState(true);
     const [showConfirm, setShowConfirm] = useState(false);
 
     useEffect(() => {
@@ -29,7 +28,8 @@ export default function Settings() {
             height: '100%',
             width: '100%',
             maxWidth: '800px',
-            margin: '0 auto'
+            margin: '0 auto',
+            paddingBottom: '20px'
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <button
@@ -142,14 +142,18 @@ export default function Settings() {
                     <Music size={20} color="#9B51E0" />
                     Статистика
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '12px' }}>
                     <div style={{ backgroundColor: '#0d0d12', padding: '12px 16px', borderRadius: '12px' }}>
-                        <div style={{ fontSize: '12px', color: '#888' }}>Любимые треки</div>
+                        <div style={{ fontSize: '12px', color: '#888' }}>❤️ Лайки</div>
                         <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{likedTracks.length}</div>
                     </div>
                     <div style={{ backgroundColor: '#0d0d12', padding: '12px 16px', borderRadius: '12px' }}>
-                        <div style={{ fontSize: '12px', color: '#888' }}>Плейлисты</div>
+                        <div style={{ fontSize: '12px', color: '#888' }}>📋 Плейлисты</div>
                         <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{myPlaylists.length}</div>
+                    </div>
+                    <div style={{ backgroundColor: '#0d0d12', padding: '12px 16px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '12px', color: '#888' }}>🎵 Треков в лайках</div>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{likedTracks.length}</div>
                     </div>
                 </div>
             </div>

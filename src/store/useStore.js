@@ -52,10 +52,25 @@ export const useStore = create(
             playNext: () => {
                 const { currentTrack, queue } = get();
                 if (!currentTrack || queue.length <= 1) return;
+
                 const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
-                if (currentIndex + 1 < queue.length) {
+
+                // Если нашли текущий трек и есть следующий
+                if (currentIndex !== -1 && currentIndex + 1 < queue.length) {
                     const nextTrack = queue[currentIndex + 1];
                     set({ currentTrack: nextTrack, isPlaying: true });
+                } else {
+                    // Если это был последний трек - ищем похожий (по исполнителю)
+                    const sameArtistTracks = queue.filter(t =>
+                        t.artist === currentTrack.artist && t.id !== currentTrack.id
+                    );
+                    if (sameArtistTracks.length > 0) {
+                        const randomTrack = sameArtistTracks[Math.floor(Math.random() * sameArtistTracks.length)];
+                        set({ currentTrack: randomTrack, isPlaying: true });
+                    } else if (queue.length > 0) {
+                        // Или просто первый трек из очереди
+                        set({ currentTrack: queue[0], isPlaying: true });
+                    }
                 }
             },
 

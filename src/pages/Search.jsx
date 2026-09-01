@@ -7,7 +7,7 @@ import { searchYouTubeTracks } from '../config/youtube';
 export default function Search() {
     const {
         searchQuery, playTrack, currentTrack, likedTracks, toggleLike,
-        addToSearchHistory, searchHistory
+        addToSearchHistory
     } = useStore();
 
     const [results, setResults] = useState([]);
@@ -125,6 +125,7 @@ export default function Search() {
         };
     }, [searchQuery]);
 
+    // Автоматическое воспроизведение при выборе трека
     const handleTrackClick = (track) => {
         playTrack(track, results);
         if (track.title && track.artist) {

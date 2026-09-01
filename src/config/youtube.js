@@ -24,9 +24,6 @@ export async function searchYouTubeTracks(query, maxResults = 30) {
         }
     }
 
-    console.log('🔑 API Key:', YOUTUBE_API_KEY ? '✅ Найден' : '❌ НЕ НАЙДЕН');
-    console.log('🔍 Поиск:', query);
-
     if (!YOUTUBE_API_KEY) {
         console.error('❌ YouTube API key не найден!');
         return [];
@@ -127,10 +124,10 @@ export const CHARTS = [
     { id: 'chart5', title: 'Инструментал' },
 ];
 
-// Плейлисты для главной
+// Плейлисты для главной - с правильными путями к картинкам
 export const PLAYLISTS = [
-    { id: 'pl1', title: 'Утренний кофе', cover: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200&q=80', tracks: 45 },
-    { id: 'pl2', title: 'Вечерний релакс', cover: 'https://images.unsplash.com/photo-1519682577862-22b62b24e493?w=200&q=80', tracks: 32 },
-    { id: 'pl3', title: 'Для тренировок', cover: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&q=80', tracks: 28 },
-    { id: 'pl4', title: 'Романтический', cover: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=200&q=80', tracks: 19 },
+    { id: 'pl1', title: 'Утренний кофе', cover: '/coffee.jpeg', tracks: 45 },
+    { id: 'pl2', title: 'Вечерний релакс', cover: '/night.jpeg', tracks: 32 },
+    { id: 'pl3', title: 'Для тренировок', cover: '/sport.jpeg', tracks: 28 },
+    { id: 'pl4', title: 'Романтический', cover: '/love.jpeg', tracks: 19 },
 ];
