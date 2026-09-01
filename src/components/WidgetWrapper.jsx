@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 // Проверяем, запущено ли приложение в Electron
 const isElectron = () => {
-    return window && window.process && window.process.type === 'renderer';
+    return window.electronAPI && window.electronAPI.isElectron === true;
 };
 
 export default function WidgetWrapper({
@@ -18,12 +18,15 @@ export default function WidgetWrapper({
     const [isWidgetMode, setIsWidgetMode] = useState(false);
 
     useEffect(() => {
-        // Проверяем, открыт ли компонент как виджет
         const urlParams = new URLSearchParams(window.location.search);
         setIsWidgetMode(urlParams.get('widget') === widgetId);
-    }, [widgetId]);
 
-    // Если это виджет - рендерим без рамок и с нужными стилями
+        // Если в Electron, устанавливаем заголовок окна
+        if (isElectron() && window.electronAPI) {
+            document.title = title;
+        }
+    }, [widgetId, title]);
+
     if (isWidgetMode) {
         return (
             <div style={{
@@ -42,29 +45,36 @@ export default function WidgetWrapper({
         );
     }
 
-    // В обычном режиме - просто рендерим
     return children;
 }
 
-// Функция для открытия виджета в Electron
+// Функция для открытия виджета
 export function openWidget(widgetId, options = {}) {
-    if (!isElectron()) {
-        // Если не в Electron - открываем в новом окне браузера
-        window.open(`/widget/${widgetId}`, '_blank', 'width=400,height=500');
+    if (isElectron() && window.electronAPI) {
+        window.electronAPI.openWidget(widgetId, options);
         return;
     }
 
-    // Если в Electron - отправляем команду в main процесс
-    if (window.electronAPI && window.electronAPI.openWidget) {
-        window.electronAPI.openWidget(widgetId, options);
-    } else {
-        console.warn('Electron API не найден');
-    }
+    // Если не в Electron - открываем в новом окне браузера
+    const width = options.width || 400;
+    const height = options.height || 500;
+    window.open(
+        `/widget/${widgetId}`,
+        '_blank',
+        `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`
+    );
 }
 
 // Функция для закрытия виджета
 export function closeWidget(widgetId) {
-    if (window.electronAPI && window.electronAPI.closeWidget) {
+    if (isElectron() && window.electronAPI) {
         window.electronAPI.closeWidget(widgetId);
+    }
+}
+
+// Функция для сворачивания в трей
+export function minimizeToTray() {
+    if (isElectron() && window.electronAPI) {
+        window.electronAPI.minimizeToTray();
     }
 }
