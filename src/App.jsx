@@ -12,8 +12,7 @@ import Onboarding from './pages/Onboarding';
 import Settings from './pages/Settings';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
-import YouTubePlayer from './components/YouTubePlayer';
-import FullscreenPlayer from './components/FullscreenPlayer';
+import UnifiedPlayer from './components/UnifiedPlayer';
 
 function AppContent() {
   const { hasCompletedOnboarding, currentTrack } = useStore();
@@ -84,9 +83,8 @@ function AppContent() {
         </div>
       </div>
 
-      {currentTrack && <YouTubePlayer isMobile={isMobile} />}
+      {currentTrack && <UnifiedPlayer />}
       {isMobile && <Sidebar isMobile={true} />}
-      <FullscreenPlayer />
     </div>
   );
 }

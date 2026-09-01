@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Volume2, User, Music, Heart, Trash2, ListMusic } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -8,12 +8,23 @@ export default function Settings() {
     const { volume, setVolume, likedTracks, userProfile, myPlaylists } = useStore();
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [localVolume, setLocalVolume] = useState(volume);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    useEffect(() => {
+        setLocalVolume(volume);
+    }, [volume]);
+
+    const handleVolumeChange = useCallback((e) => {
+        const newVolume = parseFloat(e.target.value);
+        setLocalVolume(newVolume);
+        setVolume(newVolume);
+    }, [setVolume]);
 
     const clearAllData = () => {
         localStorage.removeItem('rushe-storage');
@@ -101,17 +112,17 @@ export default function Settings() {
                     Громкость
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <span style={{ fontSize: '14px', color: '#888' }}>{Math.round(volume * 100)}%</span>
+                    <span style={{ fontSize: '14px', color: '#888', minWidth: '40px' }}>{Math.round(localVolume * 100)}%</span>
                     <input
                         type="range"
                         min="0"
                         max="1"
                         step="0.01"
-                        value={volume}
-                        onChange={(e) => setVolume(parseFloat(e.target.value))}
+                        value={localVolume}
+                        onChange={handleVolumeChange}
                         style={{
                             flex: 1,
-                            height: '4px',
+                            height: isMobile ? '6px' : '4px',
                             WebkitAppearance: 'none',
                             backgroundColor: '#2a2a35',
                             borderRadius: '2px',
@@ -121,11 +132,19 @@ export default function Settings() {
                     <style>{`
                         input[type="range"]::-webkit-slider-thumb {
                             -webkit-appearance: none;
-                            width: 16px;
-                            height: 16px;
+                            width: ${isMobile ? '20px' : '16px'};
+                            height: ${isMobile ? '20px' : '16px'};
                             border-radius: 50%;
                             background: #9B51E0;
                             cursor: pointer;
+                        }
+                        input[type="range"]::-moz-range-thumb {
+                            width: ${isMobile ? '20px' : '16px'};
+                            height: ${isMobile ? '20px' : '16px'};
+                            border-radius: 50%;
+                            background: #9B51E0;
+                            cursor: pointer;
+                            border: none;
                         }
                     `}</style>
                 </div>
@@ -145,15 +164,15 @@ export default function Settings() {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '12px' }}>
                     <div style={{ backgroundColor: '#0d0d12', padding: '12px 16px', borderRadius: '12px' }}>
                         <div style={{ fontSize: '12px', color: '#888' }}>❤️ Лайки</div>
-                        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{likedTracks.length}</div>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{likedTracks?.length || 0}</div>
                     </div>
                     <div style={{ backgroundColor: '#0d0d12', padding: '12px 16px', borderRadius: '12px' }}>
                         <div style={{ fontSize: '12px', color: '#888' }}>📋 Плейлисты</div>
-                        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{myPlaylists.length}</div>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{myPlaylists?.length || 0}</div>
                     </div>
                     <div style={{ backgroundColor: '#0d0d12', padding: '12px 16px', borderRadius: '12px' }}>
                         <div style={{ fontSize: '12px', color: '#888' }}>🎵 Треков в лайках</div>
-                        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{likedTracks.length}</div>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{likedTracks?.length || 0}</div>
                     </div>
                 </div>
             </div>
