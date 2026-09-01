@@ -26,7 +26,6 @@ function AppContent() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Проверяем, не открыт ли виджет
   const isWidget = location.pathname.startsWith('/widget');
 
   if (!hasCompletedOnboarding) {
@@ -38,7 +37,6 @@ function AppContent() {
     );
   }
 
-  // Если это виджет - показываем только его
   if (isWidget) {
     return <WidgetRouter />;
   }
@@ -92,7 +90,7 @@ function AppContent() {
         </div>
       </div>
 
-      {currentTrack && <UnifiedPlayer />}
+      {currentTrack && <UnifiedPlayer isWidget={false} />}
       {isMobile && <Sidebar isMobile={true} />}
     </div>
   );

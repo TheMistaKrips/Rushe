@@ -1,14 +1,13 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import MiniPlayerWidget from '../components/MiniPlayerWidget';
-import FullscreenPlayerWidget from '../components/FullscreenPlayerWidget';
+import UnifiedPlayer from '../components/UnifiedPlayer';
 
 export default function WidgetRouter() {
     return (
         <Routes>
-            <Route path="/widget/miniplayer" element={<MiniPlayerWidget />} />
-            <Route path="/widget/fullscreenplayer" element={<FullscreenPlayerWidget />} />
-            <Route path="/widget/:widgetId" element={<MiniPlayerWidget />} />
+            <Route path="/widget/miniplayer" element={<UnifiedPlayer isWidget={true} />} />
+            <Route path="/widget/fullscreenplayer" element={<UnifiedPlayer isWidget={true} />} />
+            <Route path="/widget/:widgetId" element={<UnifiedPlayer isWidget={true} />} />
         </Routes>
     );
 }
