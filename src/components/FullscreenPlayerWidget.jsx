@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import YouTube from 'react-youtube';
 import { Play, Pause, SkipForward, Heart, Volume2, VolumeX, X } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import WidgetWrapper, { closeWidget } from './WidgetWrapper';
@@ -10,10 +11,11 @@ export default function FullscreenPlayerWidget() {
         closeFullscreenPlayer
     } = useStore();
 
+    const [player, setPlayer] = useState(null);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [isReady, setIsReady] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const audioRef = React.useRef(null);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -21,34 +23,65 @@ export default function FullscreenPlayerWidget() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const onReady = useCallback((event) => {
+        setPlayer(event.target);
+        setIsReady(true);
+        event.target.setVolume(volume * 100);
+        if (isPlaying) {
+            event.target.playVideo();
+        }
+    }, [volume, isPlaying]);
+
+    const onStateChange = useCallback((event) => {
+        if (event.data === 1) {
+            setIsPlaying(true);
+            setDuration(event.target.getDuration());
+        } else if (event.data === 2) {
+            setIsPlaying(false);
+        } else if (event.data === 0) {
+            playNext();
+        }
+    }, [setIsPlaying, playNext]);
+
     useEffect(() => {
-        if (audioRef.current) {
+        if (player && isReady) {
             if (isPlaying) {
-                audioRef.current.play();
+                player.playVideo();
             } else {
-                audioRef.current.pause();
+                player.pauseVideo();
             }
         }
-    }, [isPlaying, currentTrack]);
+    }, [isPlaying, player, isReady]);
 
     useEffect(() => {
-        const audio = audioRef.current;
-        if (audio) {
-            const updateTime = () => {
-                setCurrentTime(audio.currentTime);
-                setDuration(audio.duration || 0);
-            };
-            audio.addEventListener('timeupdate', updateTime);
-            audio.addEventListener('loadedmetadata', updateTime);
-            return () => {
-                audio.removeEventListener('timeupdate', updateTime);
-                audio.removeEventListener('loadedmetadata', updateTime);
-            };
+        if (player && isReady) {
+            player.setVolume(volume * 100);
         }
-    }, [currentTrack]);
+    }, [volume, player, isReady]);
+
+    useEffect(() => {
+        if (player && isReady && isPlaying) {
+            const interval = setInterval(() => {
+                try {
+                    setCurrentTime(player.getCurrentTime());
+                } catch (e) { }
+            }, 500);
+            return () => clearInterval(interval);
+        }
+    }, [player, isReady, isPlaying]);
+
+    const handleVolumeChange = useCallback((e) => {
+        const newVolume = parseFloat(e.target.value);
+        setVolume(newVolume);
+        if (player && isReady) {
+            try {
+                player.setVolume(newVolume * 100);
+            } catch (err) { }
+        }
+    }, [player, isReady, setVolume]);
 
     const formatTime = (seconds) => {
-        if (!seconds || isNaN(seconds)) return '0:00';
+        if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '0:00';
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${String(secs).padStart(2, '0')}`;
@@ -71,9 +104,36 @@ export default function FullscreenPlayerWidget() {
     }
 
     const isLiked = likedTracks.some(t => t.id === currentTrack.id);
+    const videoId = currentTrack.videoId;
+
+    const opts = {
+        height: '0',
+        width: '0',
+        playerVars: {
+            autoplay: isPlaying ? 1 : 0,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            iv_load_policy: 3,
+            modestbranding: 1,
+            rel: 0,
+            showinfo: 0,
+            origin: window.location.origin
+        },
+    };
 
     return (
         <WidgetWrapper widgetId="fullscreenplayer" title="RushE - Плеер" transparent>
+            {videoId && (
+                <YouTube
+                    videoId={videoId}
+                    opts={opts}
+                    onReady={onReady}
+                    onStateChange={onStateChange}
+                    style={{ display: 'none' }}
+                />
+            )}
+
             <div style={{
                 width: '100vw',
                 height: '100vh',
@@ -86,12 +146,6 @@ export default function FullscreenPlayerWidget() {
                 padding: isMobile ? '20px' : '40px',
                 position: 'relative'
             }}>
-                <audio
-                    ref={audioRef}
-                    src={currentTrack.audioUrl}
-                    preload="metadata"
-                />
-
                 {/* Кнопка закрытия */}
                 <button
                     onClick={() => {
@@ -193,8 +247,10 @@ export default function FullscreenPlayerWidget() {
                                 background: 'none',
                                 border: 'none',
                                 cursor: 'pointer',
-                                color: '#fff'
+                                color: '#fff',
+                                opacity: !videoId ? 0.5 : 1
                             }}
+                            disabled={!videoId}
                         >
                             {isPlaying ? <Pause size={isMobile ? 44 : 56} fill="#fff" color="#fff" /> : <Play size={isMobile ? 44 : 56} fill="#fff" color="#fff" />}
                         </button>
@@ -228,7 +284,7 @@ export default function FullscreenPlayerWidget() {
                                 max="1"
                                 step="0.01"
                                 value={volume}
-                                onChange={(e) => setVolume(parseFloat(e.target.value))}
+                                onChange={handleVolumeChange}
                                 style={{
                                     flex: 1,
                                     height: '4px',
