@@ -7,6 +7,30 @@ import {
 import { useStore } from '../store/useStore';
 import { motion } from 'framer-motion';
 
+// ============================================================
+// 🔗 МОСТ ДЛЯ СВЯЗИ С REACT NATIVE
+// ============================================================
+// Проверяем, запущено ли приложение в React Native WebView
+const isReactNative = () => {
+    return window.ReactNativeWebView !== undefined;
+};
+
+// Отправка сообщений в React Native
+const sendToReactNative = (type, payload = {}) => {
+    if (isReactNative()) {
+        try {
+            const message = JSON.stringify({ type, payload });
+            window.ReactNativeWebView.postMessage(message);
+            console.log('📤 RN Bridge:', type, payload);
+        } catch (e) {
+            console.warn('RN Bridge error:', e);
+        }
+    }
+};
+
+// ============================================================
+// 📱 ОСНОВНОЙ КОМПОНЕНТ
+// ============================================================
 export default function UnifiedPlayer() {
     const {
         currentTrack, isPlaying, setIsPlaying, playNext,
@@ -22,6 +46,7 @@ export default function UnifiedPlayer() {
     const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const progressRef = useRef(null);
+    const isRN = isReactNative();
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -29,6 +54,9 @@ export default function UnifiedPlayer() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // ============================================================
+    // 🎵 ИНИЦИАЛИЗАЦИЯ ПЛЕЕРА
+    // ============================================================
     const onReady = useCallback((event) => {
         const playerInstance = event.target;
         setPlayer(playerInstance);
@@ -42,20 +70,39 @@ export default function UnifiedPlayer() {
         if (isPlaying) {
             playerInstance.playVideo();
         }
-    }, [volume, isPlaying, currentTime]);
+
+        // Сообщаем RN о готовности
+        sendToReactNative('PLAYER_READY', {
+            track: currentTrack,
+            currentTime,
+            isPlaying
+        });
+    }, [volume, isPlaying, currentTime, currentTrack]);
 
     const onStateChange = useCallback((event) => {
         if (event.data === 1) {
             setIsPlaying(true);
-            updateTime(event.target.getCurrentTime(), event.target.getDuration());
+            const time = event.target.getCurrentTime();
+            const dur = event.target.getDuration();
+            updateTime(time, dur);
+
+            // Сообщаем RN о воспроизведении
+            sendToReactNative('PLAYER_PLAY', {
+                track: currentTrack,
+                currentTime: time,
+                duration: dur
+            });
         } else if (event.data === 2) {
             setIsPlaying(false);
+            sendToReactNative('PLAYER_PAUSE', { currentTime });
         } else if (event.data === 0) {
             playNext();
         }
-    }, [setIsPlaying, updateTime, playNext]);
+    }, [setIsPlaying, updateTime, playNext, currentTrack, currentTime]);
 
-    // Обновление времени
+    // ============================================================
+    // ⏱️ ОБНОВЛЕНИЕ ВРЕМЕНИ
+    // ============================================================
     useEffect(() => {
         if (player && isReady && isPlaying) {
             const interval = setInterval(() => {
@@ -63,13 +110,20 @@ export default function UnifiedPlayer() {
                     const time = player.getCurrentTime();
                     const dur = player.getDuration();
                     updateTime(time, dur);
+
+                    // Отправляем статус в RN (каждые 3 секунды, чтобы не спамить)
+                    if (Math.floor(time) % 3 === 0) {
+                        sendToReactNative('PLAYER_PROGRESS', { currentTime: time, duration: dur });
+                    }
                 } catch (e) { }
             }, 500);
             return () => clearInterval(interval);
         }
     }, [player, isReady, isPlaying, updateTime]);
 
-    // Управление плеером
+    // ============================================================
+    // 🎮 УПРАВЛЕНИЕ ПЛЕЕРОМ
+    // ============================================================
     useEffect(() => {
         if (player && isReady) {
             if (isPlaying) {
@@ -83,9 +137,13 @@ export default function UnifiedPlayer() {
     useEffect(() => {
         if (player && isReady) {
             player.setVolume(volume * 100);
+            sendToReactNative('PLAYER_VOLUME', { volume });
         }
     }, [volume, player, isReady]);
 
+    // ============================================================
+    // 🖱️ ОБРАБОТЧИКИ СОБЫТИЙ
+    // ============================================================
     const handleProgressClick = useCallback((e) => {
         if (!player || !isReady || !duration) return;
         try {
@@ -94,6 +152,7 @@ export default function UnifiedPlayer() {
             const newTime = x * duration;
             player.seekTo(newTime, true);
             updateTime(newTime, duration);
+            sendToReactNative('PLAYER_SEEK', { currentTime: newTime, duration });
         } catch (err) { }
     }, [player, isReady, duration, updateTime]);
 
@@ -111,9 +170,26 @@ export default function UnifiedPlayer() {
         if (currentTrack) {
             addTrackToPlaylist(playlistId, currentTrack);
             setShowPlaylistMenu(false);
+            sendToReactNative('PLAYLIST_ADD', { track: currentTrack, playlistId });
         }
     }, [currentTrack, addTrackToPlaylist]);
 
+    // ============================================================
+    // 🎵 ОБРАБОТКА КЛИКА ПО ТРЕКУ (для RN)
+    // ============================================================
+    const handleTrackPlay = useCallback((track, playlist = null) => {
+        if (isRN) {
+            sendToReactNative('PLAY_TRACK', {
+                track,
+                playlist: playlist || [track],
+                currentTime: 0
+            });
+        }
+    }, [isRN]);
+
+    // ============================================================
+    // 🎨 ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    // ============================================================
     const formatTime = (seconds) => {
         if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '0:00';
         const mins = Math.floor(seconds / 60);
@@ -146,7 +222,9 @@ export default function UnifiedPlayer() {
         },
     };
 
-    // Стили для мини-плеера
+    // ============================================================
+    // 🎨 СТИЛИ
+    // ============================================================
     const miniStyle = isMobile ? {
         position: 'fixed',
         bottom: '86px',
@@ -181,7 +259,9 @@ export default function UnifiedPlayer() {
         boxShadow: '0 10px 40px rgba(0,0,0,0.4)'
     };
 
-    // Полноэкранный режим
+    // ============================================================
+    // 📺 ПОЛНОЭКРАННЫЙ РЕЖИМ
+    // ============================================================
     if (isFullscreenPlayerOpen) {
         return (
             <motion.div
@@ -212,7 +292,10 @@ export default function UnifiedPlayer() {
                 )}
 
                 <button
-                    onClick={toggleFullscreenPlayer}
+                    onClick={() => {
+                        toggleFullscreenPlayer();
+                        sendToReactNative('FULLSCREEN_CLOSE', {});
+                    }}
                     style={{
                         position: 'absolute',
                         top: isMobile ? '20px' : '30px',
@@ -304,7 +387,10 @@ export default function UnifiedPlayer() {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '20px' : '30px' }}>
                         <button
-                            onClick={() => toggleLike(currentTrack)}
+                            onClick={() => {
+                                toggleLike(currentTrack);
+                                sendToReactNative('TOGGLE_LIKE', { track: currentTrack, liked: !isLiked });
+                            }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fff' }}
                         >
                             <Heart size={isMobile ? 28 : 32} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#fff'} />
@@ -370,7 +456,11 @@ export default function UnifiedPlayer() {
                         </div>
 
                         <button
-                            onClick={() => setIsPlaying(!isPlaying)}
+                            onClick={() => {
+                                const newState = !isPlaying;
+                                setIsPlaying(newState);
+                                sendToReactNative('PLAYER_TOGGLE', { isPlaying: newState });
+                            }}
                             style={{
                                 background: 'none',
                                 border: 'none',
@@ -383,7 +473,10 @@ export default function UnifiedPlayer() {
                             {isPlaying ? <Pause size={isMobile ? 44 : 56} fill="#fff" color="#fff" /> : <Play size={isMobile ? 44 : 56} fill="#fff" color="#fff" />}
                         </button>
                         <button
-                            onClick={playNext}
+                            onClick={() => {
+                                playNext();
+                                sendToReactNative('PLAYER_NEXT', {});
+                            }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fff' }}
                         >
                             <SkipForward size={isMobile ? 28 : 32} fill="#fff" color="#fff" />
@@ -437,7 +530,9 @@ export default function UnifiedPlayer() {
         );
     }
 
-    // Мини-плеер
+    // ============================================================
+    // 📱 МИНИ-ПЛЕЕР
+    // ============================================================
     return (
         <motion.div
             initial={{ y: 100, opacity: 0 }}
@@ -465,7 +560,10 @@ export default function UnifiedPlayer() {
                     overflow: 'hidden',
                     cursor: 'pointer'
                 }}
-                onClick={toggleFullscreenPlayer}
+                onClick={() => {
+                    toggleFullscreenPlayer();
+                    sendToReactNative('FULLSCREEN_OPEN', {});
+                }}
             >
                 <img
                     src={currentTrack.cover || `https://picsum.photos/seed/${currentTrack.id}/100/100`}
@@ -494,7 +592,10 @@ export default function UnifiedPlayer() {
                 )}
             </div>
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '12px', overflow: 'hidden', minWidth: 0, cursor: 'pointer' }} onClick={toggleFullscreenPlayer}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '12px', overflow: 'hidden', minWidth: 0, cursor: 'pointer' }} onClick={() => {
+                toggleFullscreenPlayer();
+                sendToReactNative('FULLSCREEN_OPEN', {});
+            }}>
                 <span style={{ fontWeight: 'bold', fontSize: isMobile ? '13px' : '14px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                     {currentTrack.title}
                 </span>
@@ -532,7 +633,10 @@ export default function UnifiedPlayer() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flexShrink: 0 }}>
                 <button
-                    onClick={() => toggleLike(currentTrack)}
+                    onClick={() => {
+                        toggleLike(currentTrack);
+                        sendToReactNative('TOGGLE_LIKE', { track: currentTrack, liked: !isLiked });
+                    }}
                     style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}
                 >
                     <Heart size={isMobile ? 18 : 22} fill={isLiked ? '#FF2A54' : 'none'} color={isLiked ? '#FF2A54' : '#fff'} />
@@ -590,7 +694,11 @@ export default function UnifiedPlayer() {
                 )}
 
                 <button
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    onClick={() => {
+                        const newState = !isPlaying;
+                        setIsPlaying(newState);
+                        sendToReactNative('PLAYER_TOGGLE', { isPlaying: newState });
+                    }}
                     style={{
                         background: 'none',
                         border: 'none',
@@ -605,13 +713,19 @@ export default function UnifiedPlayer() {
                     {isPlaying ? <Pause size={isMobile ? 20 : 26} fill="#fff" color="#fff" /> : <Play size={isMobile ? 20 : 26} fill="#fff" color="#fff" />}
                 </button>
                 <button
-                    onClick={playNext}
+                    onClick={() => {
+                        playNext();
+                        sendToReactNative('PLAYER_NEXT', {});
+                    }}
                     style={{ background: 'none', border: 'none', padding: '4px', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                 >
                     <SkipForward size={isMobile ? 18 : 22} fill="#fff" color="#fff" />
                 </button>
                 <button
-                    onClick={toggleFullscreenPlayer}
+                    onClick={() => {
+                        toggleFullscreenPlayer();
+                        sendToReactNative('FULLSCREEN_OPEN', {});
+                    }}
                     style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}
                 >
                     <Maximize2 size={isMobile ? 18 : 22} color="#888" />
