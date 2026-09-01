@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, Heart, Pause, RefreshCw, TrendingUp, ListMusic, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
-import { searchYouTubeTracks, DEMO_TRACKS, PLAYLISTS } from '../config/youtube';
+import { searchYouTubeTracks, PLAYLISTS } from '../config/youtube';
 import { Lottie } from "lottie-react";
 
 const containerVariants = {
@@ -61,14 +61,14 @@ export default function Home() {
             try {
                 if (searchQuery.trim()) {
                     const results = await searchYouTubeTracks(searchQuery, 20);
-                    setRecommendedTracks(results.length > 0 ? results : DEMO_TRACKS);
+                    setRecommendedTracks(results.length > 0 ? results : []);
                 } else {
                     const defaultTracks = await searchYouTubeTracks('best songs 2024', 20);
-                    setRecommendedTracks(defaultTracks.length > 0 ? defaultTracks : DEMO_TRACKS);
+                    setRecommendedTracks(defaultTracks.length > 0 ? defaultTracks : []);
                 }
             } catch (err) {
                 console.error("Ошибка загрузки треков:", err);
-                setRecommendedTracks(DEMO_TRACKS);
+                setRecommendedTracks([]);
                 setError('Не удалось загрузить треки.');
             } finally {
                 setIsLoading(false);
@@ -308,6 +308,21 @@ export default function Home() {
                         </motion.div>
                     )}
 
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '12px',
+                        right: '20px',
+                        fontSize: '10px',
+                        color: 'rgba(255,255,255,0.4)',
+                        zIndex: 2,
+                        letterSpacing: '0.5px',
+                        backgroundColor: 'rgba(0,0,0,0.15)',
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        backdropFilter: 'blur(10px)'
+                    }}>
+                        {likedTracks.length > 0 ? '🎵 Из ваших лайков' : '🎶 Рекомендуемые треки'}
+                    </div>
                 </div>
             </motion.div>
 
